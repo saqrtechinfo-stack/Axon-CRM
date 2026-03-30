@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// These are the stages of an enquiry
+enum Status {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String   // Customer Name
+  email     String
+  phone     String?
+  company   String?
+  value     Float    @default(0) // Potential Deal Value
+  status    Status   @default(NEW)
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
