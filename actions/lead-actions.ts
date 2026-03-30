@@ -36,15 +36,22 @@ export async function createLead(formData: FormData) {
 
 export async function updateLeadStatus(id: string, newStatus: any) {
   try {
+    // Log for debugging (Check your terminal when you drag)
+    console.log(`Updating Lead ${id} to ${newStatus}`);
+
     await prisma.lead.update({
-      where: { id },
+      where: { id: id },
       data: { status: newStatus },
-    })
-    revalidatePath("/enquiries")
-    revalidatePath("/")
-    return { success: true }
+    });
+
+    revalidatePath("/pipeline");
+    revalidatePath("/enquiries");
+    revalidatePath("/");
+
+    return { success: true };
   } catch (error) {
-    return { success: false }
+    console.error("PRISMA ERROR:", error);
+    return { success: false };
   }
 }
 

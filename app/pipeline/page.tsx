@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 
+
 export default async function PipelinePage() {
   const leads = await prisma.lead.findMany();
 

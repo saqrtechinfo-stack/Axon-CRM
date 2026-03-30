@@ -11,31 +11,17 @@ export const metadata: Metadata = {
   description: "Modern CRM for high-growth teams",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex h-screen bg-[#F9FAFB]">
+        <div className="h-full relative">
           <Sidebar />
-          <main className="flex-1 ml-64 overflow-y-auto">
-            {/* Header / Topbar */}
-            <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md px-8 py-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                  System Overview
-                </h2>
-                <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-                  RK
-                </div>
-              </div>
-            </header>
-
-            {/* Page Content */}
-            <div className="p-8">{children}</div>
+          {/* lg:pl-72: Adds padding on large screens for the fixed sidebar.
+              pt-20: Adds space at the top on mobile so content doesn't sit under the hamburger.
+          */}
+          <main className="lg:pl-72 pt-20 lg:pt-0">
+            <div className="max-w-7xl mx-auto p-4 md:p-8">{children}</div>
           </main>
         </div>
       </body>

@@ -3,65 +3,83 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Kanban, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, GitBranch, Menu,Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
-// This is a "Type" - it defines what a Route object looks like
-interface Route {
-  label: string;
-  icon: React.ElementType;
-  href: string;
-}
-
-const routes: Route[] = [
+const routes = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Enquiries", icon: Users, href: "/enquiries" },
-  { label: "Pipeline", icon: Kanban, href: "/pipeline" },
+  { label: "Pipeline", icon: GitBranch, href: "/pipeline" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
-  return (
-    <div className="flex flex-col h-full bg-white border-r border-slate-200 w-64 fixed inset-y-0 z-50">
-      <div className="p-6">
-        <h1 className="text-xl font-bold tracking-tight text-blue-600">
-          Axon<span className="text-slate-900">CRM</span>
+  const NavContent = () => (
+    <div className="space-y-4 py-4 flex flex-col h-full bg-slate-900 text-white">
+      <div className="px-6 py-2">
+        <h1 className="text-xl font-black tracking-tighter text-blue-400">
+          AXON CRM
         </h1>
       </div>
-
-      <nav className="flex-1 px-3 space-y-1">
+      <div className="flex-1 px-3">
         {routes.map((route) => (
           <Link
             key={route.href}
             href={route.href}
+            onClick={() => setOpen(false)} // Close menu on click (mobile)
             className={cn(
-              "group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all",
+              "text-sm group flex p-3 w-full justify-start font-bold cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition-all",
               pathname === route.href
-                ? "bg-blue-50 text-blue-700 shadow-sm"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                ? "text-white bg-white/10"
+                : "text-slate-400",
             )}
           >
             <route.icon
               className={cn(
                 "h-5 w-5 mr-3",
-                pathname === route.href
-                  ? "text-blue-600"
-                  : "text-slate-400 group-hover:text-slate-900",
+                pathname === route.href ? "text-blue-400" : "text-slate-400",
               )}
             />
             {route.label}
           </Link>
         ))}
-      </nav>
-
-      <div className="p-4 border-t border-slate-100">
-        <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-          <LogOut className="h-5 w-5 mr-3" />
-          Logout
-        </button>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {/* MOBILE NAVIGATION (Hamburger) */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-white shadow-md border-slate-200"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="p-0 w-72 bg-slate-900 border-none"
+          >
+            <NavContent />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* DESKTOP SIDEBAR */}
+      <div className="hidden lg:flex h-full w-72 flex-col fixed inset-y-0 z-50">
+        <NavContent />
+      </div>
+    </>
   );
 }

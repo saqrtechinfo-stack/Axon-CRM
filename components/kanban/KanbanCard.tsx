@@ -16,8 +16,15 @@ export function KanbanCard({ lead }: { lead: any }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:border-blue-300 transition-colors shadow-sm bg-white border-slate-200">
+    // Put everything on this DIV
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="outline-none" // Prevents focus rings on click
+    >
+      <Card className="p-3 mb-2 cursor-grab active:cursor-grabbing hover:border-blue-400 transition-all shadow-sm bg-white border-slate-200">
         <p className="text-xs font-bold text-slate-900 truncate">{lead.name}</p>
         <div className="flex justify-between items-center mt-2">
           <p className="text-[10px] text-slate-500 font-medium">

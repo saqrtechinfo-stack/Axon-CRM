@@ -1,76 +1,84 @@
 // app/page.tsx
-import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { prisma } from "@/lib/prisma";
+import { RevenueChart } from "@/components/analytics/RevenueChart";
+import { CreateLeadModal } from "@/components/CreateLeadModal";
 
 export default async function DashboardPage() {
-  // Fetch leads from Supabase directly in the Server Component
-  const leads = await prisma.lead.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
-const stats = [
-  { label: "Total Enquiries", value: leads.length, color: "text-blue-600" },
-  {
-    label: "Pipeline Value",
-    value: `$${leads.reduce((acc, curr) => acc + (curr.value || 0), 0).toLocaleString()}`,
-    color: "text-emerald-600",
-  },
-  {
-    label: "Active Deals",
-    value: leads.filter((l) => l.status !== "LOST").length,
-    color: "text-amber-600",
-  },
-];
+  const leads = await prisma.lead.findMany();
+
+  // 1. Calculate Stats
+  const totalValue = leads.reduce((acc, curr) => acc + (curr.value || 0), 0);
+  const wonValue = leads
+    .filter((l) => l.status === "WON")
+    .reduce((acc, curr) => acc + (curr.value || 0), 0);
+  const winRate =
+    leads.length > 0
+      ? (leads.filter((l) => l.status === "WON").length / leads.length) * 100
+      : 0;
+
+  // 2. Format Data for the Chart
+  const stages = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON"];
+  const chartData = stages.map((stage) => ({
+    name: stage,
+    value: leads
+      .filter((l) => l.status === stage)
+      .reduce((acc, curr) => acc + (curr.value || 0), 0),
+  }));
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500 text-sm">
-            Welcome back, Rithik. Here is your pipeline.
+          <h1 className="text-2xl font-black text-slate-900">Dashboard</h1>
+          <p className="text-slate-500 text-sm font-medium">
+            Real-time performance of Al Saqr Tech.
           </p>
         </div>
         <CreateLeadModal />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm"
-          >
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              {stat.label}
-            </p>
-            <p className={`text-2xl font-bold mt-2 ${stat.color}`}>
-              {stat.value}
-            </p>
-          </div>
-        ))}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          label="Total Pipeline"
+          value={`$${totalValue.toLocaleString()}`}
+          description="Gross potential value"
+        />
+        <StatCard
+          label="Revenue Won"
+          value={`$${wonValue.toLocaleString()}`}
+          description="Closed deals"
+          color="text-emerald-600"
+        />
+        <StatCard
+          label="Win Rate"
+          value={`${winRate.toFixed(1)}%`}
+          description="Conversion efficiency"
+          color="text-blue-600"
+        />
       </div>
 
-      {/* Simple List to verify data */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800">Recent Enquiries</h3>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {leads.map((lead) => (
-            <div
-              key={lead.id}
-              className="px-6 py-4 flex justify-between items-center hover:bg-slate-50 transition-colors"
-            >
-              <div>
-                <p className="font-medium text-slate-900">{lead.name}</p>
-                <p className="text-xs text-slate-500">{lead.email}</p>
-              </div>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                {lead.status}
-              </span>
-            </div>
-          ))}
-        </div>
+      {/* Chart Section */}
+      <div className="grid grid-cols-1 gap-6">
+        <RevenueChart data={chartData} />
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  description,
+  color = "text-slate-900",
+}: any) {
+  return (
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+        {label}
+      </p>
+      <h3 className={`text-3xl font-bold mt-2 ${color}`}>{value}</h3>
+      <p className="text-xs text-slate-400 mt-1 font-medium">{description}</p>
     </div>
   );
 }
