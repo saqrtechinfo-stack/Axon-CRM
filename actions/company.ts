@@ -1,5 +1,5 @@
 // lib/actions/company.ts
-"use client"; // If using as a client action, or remove if using 'use server' inside a dedicated file
+"use server"; // <--- CHANGE THIS FROM "use client" TO "use server"
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -17,9 +17,13 @@ export async function createCompany(formData: FormData) {
         plan,
       },
     });
+
+    // This tells Next.js to refresh the data on the Super Admin page
     revalidatePath("/super-admin");
+
     return { success: true };
   } catch (error) {
+    console.error(error);
     return { error: "Company name already exists" };
   }
 }

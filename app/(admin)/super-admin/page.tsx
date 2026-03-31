@@ -27,7 +27,7 @@ export default async function SuperAdminDashboard() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black italic tracking-tighter">
-            NEXUS CORE
+            AXON CORE
           </h1>
           <p className="text-slate-400 text-sm">
             System Overview & Tenant Management

@@ -40,22 +40,25 @@ model Company {
 }
 
 model User {
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) // Change this
   clerkId   String   @unique
   email     String   @unique
   name      String?
   role      Role     @default(SALES_EXECUTIVE)
-  leads     Lead[] // One user can have many leads
+  
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  
+  leads     Lead[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Lead {
   companyId String
+  clientCompany String?
   company   Company @relation(fields: [companyId], references: [id])
-
+  clientName  String?
   ownerId   String?
   owner     User?    @relation(fields: [ownerId], references: [id])
   id        String   @id @default(cuid())

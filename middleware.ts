@@ -7,8 +7,7 @@ export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
-});
-
+}, { afterSignInUrl: "/", afterSignUpUrl: "/" }); // Add these explicitly
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
