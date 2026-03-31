@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 // These are the stages of an enquiry
@@ -16,13 +16,53 @@ enum Status {
   LOST
 }
 
-model Lead {
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  SALES_EXECUTIVE
+}
+
+model Company {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  domain String? // e.g., "techcorp.com"
+  logo   String?
+  plan   String  @default("BASIC") // BASIC, PRO, ENTERPRISE
+  status String  @default("ACTIVE") // ACTIVE, SUSPENDED
+
+  // Relationships
+  users User[] // Employees of this company
+  leads Lead[] // Leads belonging to this company
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
   id        String   @id @default(cuid())
-  name      String   // Customer Name
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  role      Role     @default(SALES_EXECUTIVE)
+  leads     Lead[] // One user can have many leads
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lead {
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  ownerId   String?
+  owner     User?    @relation(fields: [ownerId], references: [id])
+  id        String   @id @default(cuid())
+  name      String
   email     String
   phone     String?
-  company   String?
-  value     Float    @default(0) // Potential Deal Value
+  value     Float    @default(0)
   status    Status   @default(NEW)
   notes     String?  @db.Text
   createdAt DateTime @default(now())

@@ -71,7 +71,12 @@ function StatCard({
   value,
   description,
   color = "text-slate-900",
-}: any) {
+}: {
+  label: string;
+  value: string | number;
+  description: string;
+  color?: string;
+}) {
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:border-blue-200 transition-colors">
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">

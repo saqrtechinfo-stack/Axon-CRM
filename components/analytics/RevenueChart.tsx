@@ -11,10 +11,14 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-export function RevenueChart({ data }: { data: any[] }) {
+export function RevenueChart({
+  data,
+}: {
+  data: { name: string; value: number }[];
+}) {
   return (
-    <div className="h-[300px] w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-      <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider">
+    <div className="h-[320px] w-full bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider">
         Pipeline Value by Stage
       </h3>
       <ResponsiveContainer width="100%" height="100%">
