@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 
-export function EnquiryTableWrapper({ initialLeads }: { initialLeads: any[] }) {
+export function EnquiryTableWrapper({
+  initialLeads,
+  statusColumns,
+}: {
+  initialLeads: any[];
+  statusColumns: any[];
+}) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredLeads = initialLeads.filter((lead) => {
@@ -66,7 +72,11 @@ export function EnquiryTableWrapper({ initialLeads }: { initialLeads: any[] }) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge id={lead.id} currentStatus={lead.status} />
+                  <StatusBadge
+                    id={lead.id}
+                    currentStatus={lead.status}
+                    statusColumns={statusColumns}
+                  />
                 </TableCell>
                 <TableCell className="font-mono text-sm font-semibold text-slate-600">
                   ${lead.value.toLocaleString()}

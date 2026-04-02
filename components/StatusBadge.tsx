@@ -11,47 +11,45 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const statuses = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
-
 export function StatusBadge({
   id,
   currentStatus,
+  statusColumns,
 }: {
   id: string;
-  currentStatus: string;
+  currentStatus: any;
+  statusColumns: any[];
 }) {
   const handleStatusChange = async (value: string) => {
     await updateLeadStatus(id, value);
   };
 
+  const getStatusColor = (statusLabel: string) => {
+    const status = statusColumns.find((s) => s.label === statusLabel);
+    return status?.color || "#6b7280"; // Default gray if not found
+  };
+
   return (
-    <Select defaultValue={currentStatus} onValueChange={handleStatusChange}>
-      {/* Change w-[130px] to a fixed width and add w-fit to the container if needed */}
+    <Select defaultValue={currentStatus.id} onValueChange={handleStatusChange}>
       <SelectTrigger
         className={cn(
           "w-[120px] h-7 text-[10px] font-black uppercase tracking-widest rounded-full border border-transparent transition-all shadow-none px-3 focus:ring-0",
-          currentStatus === "WON" &&
-            "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
-          currentStatus === "LOST" &&
-            "bg-rose-50 text-rose-700 hover:bg-rose-100",
-          currentStatus === "NEW" &&
-            "bg-blue-50 text-blue-700 hover:bg-blue-100",
-          currentStatus === "CONTACTED" &&
-            "bg-amber-50 text-amber-700 hover:bg-amber-100",
-          currentStatus === "PROPOSAL" &&
-            "bg-purple-50 text-purple-700 hover:bg-purple-100",
         )}
+        style={{
+          backgroundColor: `${getStatusColor(currentStatus.label)}20`, // Add transparency
+          color: getStatusColor(currentStatus.label),
+        }}
       >
         <SelectValue placeholder="Status" />
       </SelectTrigger>
       <SelectContent className="bg-white">
-        {statuses.map((s) => (
+        {statusColumns.map((status) => (
           <SelectItem
-            key={s}
-            value={s}
+            key={status.id}
+            value={status.id}
             className="text-[11px] font-bold uppercase"
           >
-            {s}
+            {status.label}
           </SelectItem>
         ))}
       </SelectContent>

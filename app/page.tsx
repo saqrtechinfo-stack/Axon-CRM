@@ -17,24 +17,26 @@ export default async function DashboardPage() {
   let leads;
   if (dbUser?.role === "SUPER_ADMIN") {
     // Super Admin sees everything across all companies
-    leads = await prisma.lead.findMany();
+    leads = await prisma.lead.findMany({
+      include: { status: true },
+    });
   } else {
     // Others only see leads for their specific company
     leads = await prisma.lead.findMany({
       where: { companyId: dbUser?.companyId },
+      include: { status: true },
     });
   }
-
- 
 
   // 1. Calculate Stats
   const totalValue = leads.reduce((acc, curr) => acc + (curr.value || 0), 0);
   const wonValue = leads
-    .filter((l) => l.status === "WON")
+    .filter((l) => l.status?.label === "WON")
     .reduce((acc, curr) => acc + (curr.value || 0), 0);
   const winRate =
     leads.length > 0
-      ? (leads.filter((l) => l.status === "WON").length / leads.length) * 100
+      ? (leads.filter((l) => l.status?.label === "WON").length / leads.length) *
+        100
       : 0;
 
   // 2. Format Data for the Chart
@@ -42,7 +44,7 @@ export default async function DashboardPage() {
   const chartData = stages.map((stage) => ({
     name: stage,
     value: leads
-      .filter((l) => l.status === stage)
+      .filter((l) => l.status?.label === stage)
       .reduce((acc, curr) => acc + (curr.value || 0), 0),
   }));
 

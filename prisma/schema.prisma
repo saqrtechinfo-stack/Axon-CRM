@@ -6,16 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// These are the stages of an enquiry
-enum Status {
-  NEW
-  CONTACTED
-  QUALIFIED
-  PROPOSAL
-  WON
-  LOST
-}
-
 enum Role {
   SUPER_ADMIN
   ADMIN
@@ -23,51 +13,113 @@ enum Role {
   SALES_EXECUTIVE
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
 model Company {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  domain String? // e.g., "techcorp.com"
-  logo   String?
-  plan   String  @default("BASIC") // BASIC, PRO, ENTERPRISE
-  status String  @default("ACTIVE") // ACTIVE, SUSPENDED
-
+  id           String        @id @default(cuid())
+  name         String        @unique
+  domain       String?
+  logo         String?
+  plan         String        @default("BASIC")
+  status       String        @default("ACTIVE") // Keep this so your migration doesn't fail
+  
   // Relationships
-  users User[] // Employees of this company
-  leads Lead[] // Leads belonging to this company
+  users        User[]
+  leads        Lead[]
+  departments  Department[]
+  designations Designation[]
+  statuses     LeadStatus[]
 
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Designation {
+  id        String   @id @default(cuid())
+  name      String
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model User {
-  id        String   @id @default(cuid()) // Change this
-  clerkId   String?  @unique
-  email     String   @unique
-  name      String?
-  role      Role     @default(SALES_EXECUTIVE)
+  id            String      @id @default(cuid())
+  clerkId       String?     @unique
+  email         String      @unique
+  name          String?
+  role          Role        @default(SALES_EXECUTIVE)
+  status        UserStatus  @default(ACTIVE)
+
+  companyId     String
+  company       Company     @relation(fields: [companyId], references: [id])
+
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id])
   
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  
-  leads     Lead[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  designationId String?
+  designation   Designation? @relation(fields: [designationId], references: [id])
+
+  managerId     String?
+  manager       User?       @relation("ReportsTo", fields: [managerId], references: [id])
+  subordinates  User[]      @relation("ReportsTo")
+
+  leads         Lead[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Lead {
-  companyId String
+  id            String      @id @default(cuid())
+  name          String
+  email         String
+  phone         String?
   clientCompany String?
-  company   Company @relation(fields: [companyId], references: [id])
-  clientName  String?
-  ownerId   String?
-  owner     User?    @relation(fields: [ownerId], references: [id])
+  clientName    String?
+  value         Float       @default(0)
+  notes         String?     @db.Text
+  
+  companyId     String
+  company       Company     @relation(fields: [companyId], references: [id])
+  
+  ownerId       String?
+  owner         User?       @relation(fields: [ownerId], references: [id])
+  
+  statusId      String?
+  status        LeadStatus? @relation(fields: [statusId], references: [id])
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model LeadStatus {
   id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  value     Float    @default(0)
-  status    Status   @default(NEW)
-  notes     String?  @db.Text
+  label     String   // "NEW", "WON", etc.
+  color     String   @default("#3b82f6")
+  order     Int      @default(0)
+  isClosing Boolean  @default(false)
+  isWon     Boolean  @default(false)
+
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  leads     Lead[]
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }

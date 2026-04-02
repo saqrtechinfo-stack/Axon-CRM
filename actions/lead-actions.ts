@@ -31,6 +31,21 @@ export async function createLead(formData: FormData) {
   const companyInput = formData.get("company") as string; // This is the TEXT from the input
   const value = parseFloat(formData.get("value") as string) || 0;
 
+  // 3. Find the default "NEW" status for this company
+  const newStatus = await prisma.leadStatus.findFirst({
+    where: {
+      companyId: dbUser.companyId,
+      label: "NEW",
+    },
+  });
+
+  if (!newStatus) {
+    return {
+      success: false,
+      error: "Default lead status not found. Please contact admin.",
+    };
+  }
+
   try {
     await prisma.lead.create({
       data: {
@@ -40,7 +55,7 @@ export async function createLead(formData: FormData) {
         // This is the string field we added to the schema to avoid the "Company relation" error
         clientCompany: companyInput,
         value,
-        status: "NEW",
+        statusId: newStatus.id,
         // This links the lead to the main Company (SaaS Tenant)
         companyId: dbUser.companyId,
       },
@@ -58,11 +73,11 @@ export async function createLead(formData: FormData) {
   }
 }
 
-export async function updateLeadStatus(id: string, newStatus: any) {
+export async function updateLeadStatus(id: string, newStatusId: string) {
   try {
     await prisma.lead.update({
       where: { id: id },
-      data: { status: newStatus },
+      data: { statusId: newStatusId },
     });
 
     revalidatePath("/pipeline");

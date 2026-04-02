@@ -23,6 +23,7 @@ interface User {
   email: string;
   name?: string;
   role: string;
+  companyId: string;
   company?: {
     name: string;
   };
@@ -65,7 +66,7 @@ const allRoutes = [
     label: "Settings",
     icon: Settings,
     href: "/settings",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+    roles: ["ADMIN", "SUPER_ADMIN"], // Only admins can access settings
   },
 ];
 
@@ -97,27 +98,30 @@ function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
 
       <div className="flex-1 px-3 space-y-1">
         {/* Render Standard Routes */}
-        {filteredRoutes.map((route) => (
-          <Link
-            key={route.href}
-            href={route.href}
-            onClick={onClose}
-            className={cn(
-              "text-sm group flex p-3 w-full justify-start font-bold rounded-lg transition-all",
-              pathname === route.href
-                ? "text-white bg-white/10"
-                : "text-slate-400 hover:bg-white/5",
-            )}
-          >
-            <route.icon
+        {filteredRoutes.map((route) => {
+          const href = route.href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
               className={cn(
-                "h-5 w-5 mr-3",
-                pathname === route.href ? "text-blue-400" : "text-slate-400",
+                "text-sm group flex p-3 w-full justify-start font-bold rounded-lg transition-all",
+                pathname === href
+                  ? "text-white bg-white/10"
+                  : "text-slate-400 hover:bg-white/5",
               )}
-            />
-            {route.label}
-          </Link>
-        ))}
+            >
+              <route.icon
+                className={cn(
+                  "h-5 w-5 mr-3",
+                  pathname === href ? "text-blue-400" : "text-slate-400",
+                )}
+              />
+              {route.label}
+            </Link>
+          );
+        })}
 
         {/* 3. Render System Management Section (Super Admin Only) */}
         {isSuperAdmin && (

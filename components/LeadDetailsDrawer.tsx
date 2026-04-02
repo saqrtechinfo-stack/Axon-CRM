@@ -35,7 +35,12 @@ export function LeadDetailsDrawer({ lead }: { lead: any }) {
         <SheetHeader className="border-b pb-6">
           <SheetTitle className="text-2xl font-bold">{lead.name}</SheetTitle>
           <span className="text-xs w-max font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded uppercase">
-            {lead.status}
+            <span
+              style={{ color: lead.status?.color || "#ccc" }}
+              className="font-bold uppercase tracking-tighter"
+            >
+              {lead.status?.label || "UNASSIGNED"}
+            </span>
           </span>
         </SheetHeader>
 
