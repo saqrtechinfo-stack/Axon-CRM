@@ -229,7 +229,7 @@ export function LeadDetailsDrawer({
                         </p>
                         {activity.remarks && (
                           <div className="mt-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 italic text-xs text-blue-600">
-                            "{activity.remarks}"
+                            &quot;{activity.remarks}&quot;
                           </div>
                         )}
                       </div>

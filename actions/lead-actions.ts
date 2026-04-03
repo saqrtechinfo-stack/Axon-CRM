@@ -80,48 +80,88 @@ export async function updateLeadDetails(id: string, data: any) {
   }
 }
 
+// export async function updateLeadStatus(
+//   id: string,
+//   newStatusId: string,
+//   remarks: string,
+// ) {
+//   const { userId } = await auth();
+//   const dbUser = await prisma.user.findUnique({ where: { clerkId: userId! } });
+
+//   try {
+//     await prisma.$transaction(async (tx) => {
+//       const currentLead = await tx.lead.findUnique({
+//         where: { id },
+//         include: { status: true },
+//       });
+//       const newStatus = await tx.leadStatus.findUnique({
+//         where: { id: newStatusId },
+//       });
+
+//       // Update Lead
+//       await tx.lead.update({
+//         where: { id },
+//         data: { statusId: newStatusId },
+//       });
+
+//       // Log Activity
+//       await tx.leadActivity.create({
+//         data: {
+//           type: "STATUS_CHANGE",
+//           content: `Status updated to ${newStatus?.label}`,
+//           remarks: remarks || "No additional notes provided.",
+//           leadId: id,
+//           userId: dbUser!.id,
+//         },
+//       });
+//     });
+
+//     revalidatePath("/enquiries");
+//     return { success: true };
+//   } catch (error) {
+//     return { success: false };
+//   }
+// }
+//  updateLead Status
 export async function updateLeadStatus(
-  id: string,
-  newStatusId: string,
-  remarks: string,
+  leadId: string,
+  statusId: string,
+  remarks?: string,
 ) {
   const { userId } = await auth();
-  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId! } });
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
 
   try {
-    await prisma.$transaction(async (tx) => {
-      const currentLead = await tx.lead.findUnique({
-        where: { id },
-        include: { status: true },
-      });
-      const newStatus = await tx.leadStatus.findUnique({
-        where: { id: newStatusId },
-      });
+    const newStatus = await prisma.leadStatus.findUnique({
+      where: { id: statusId },
+    });
 
-      // Update Lead
-      await tx.lead.update({
-        where: { id },
-        data: { statusId: newStatusId },
-      });
-
-      // Log Activity
-      await tx.leadActivity.create({
-        data: {
-          type: "STATUS_CHANGE",
-          content: `Status updated to ${newStatus?.label}`,
-          remarks: remarks || "No additional notes provided.",
-          leadId: id,
-          userId: dbUser!.id,
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        statusId: statusId,
+        activities: {
+          create: {
+            type: "STATUS_CHANGE",
+            content: `Moved to ${newStatus?.label}`,
+            remarks: remarks || "Status updated via Pipeline/Table.",
+            userId: dbUser!.id,
+          },
         },
-      });
+      },
     });
 
     revalidatePath("/enquiries");
+    revalidatePath("/pipeline");
     return { success: true };
   } catch (error) {
+    console.error(error);
     return { success: false };
   }
 }
+
 
 // Separate Action for just adding a Remark
 export async function addLeadRemark(leadId: string, remarks: string) {

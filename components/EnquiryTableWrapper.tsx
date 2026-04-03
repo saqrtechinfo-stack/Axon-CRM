@@ -1,6 +1,6 @@
 "use client";
 
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { EnquiryFilters } from "./EnquiryFilters";
 import { StatusBadge } from "./StatusBadge";
 import { LeadDetailsDrawer } from "./LeadDetailsDrawer";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Eye, Mail, Phone } from "lucide-react";
 import { Button } from "./ui/button";
+import { StatusChangeModal } from "./StatusChangeModal";
 
 export function EnquiryTableWrapper({
   initialLeads,
@@ -25,6 +26,10 @@ export function EnquiryTableWrapper({
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    lead: any;
+    status: any;
+  } | null>(null);
   const router = useRouter();
   // Inside EnquiryTableWrapper.tsx
   useEffect(() => {
@@ -53,7 +58,7 @@ export function EnquiryTableWrapper({
       {/* Global Drawer - only renders when a lead is selected */}
       {selectedLead && (
         <LeadDetailsDrawer
-        statusColumns={statusColumns} 
+          statusColumns={statusColumns}
           lead={selectedLead}
           isOpen={!!selectedLead}
           onClose={() => {
@@ -128,6 +133,13 @@ export function EnquiryTableWrapper({
                     id={lead.id}
                     currentStatus={lead.status}
                     statusColumns={statusColumns}
+                    onStatusSelect={(statusId) => {
+                      const targetStatus = statusColumns.find(
+                        (s: any) => s.id === statusId,
+                      );
+                      // TRIGGER THE MODAL STATE
+                      setPendingMove({ lead, status: targetStatus });
+                    }}
                   />
                 </TableCell>
 
@@ -152,6 +164,15 @@ export function EnquiryTableWrapper({
           </TableBody>
         </Table>
       </div>
+      <StatusChangeModal
+        isOpen={!!pendingMove}
+        lead={pendingMove?.lead}
+        targetStatus={pendingMove?.status}
+        onClose={() => {
+          setPendingMove(null);
+          router.refresh(); // Ensure table stays synced
+        }}
+      />
     </>
   );
 }

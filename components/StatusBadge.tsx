@@ -1,7 +1,5 @@
-// components/StatusBadge.tsx
 "use client";
 
-import { updateLeadStatus } from "@/actions/lead-actions";
 import {
   Select,
   SelectContent,
@@ -15,28 +13,29 @@ export function StatusBadge({
   id,
   currentStatus,
   statusColumns,
+  onStatusSelect, // ADD THIS PROP
 }: {
   id: string;
   currentStatus: any;
   statusColumns: any[];
+  onStatusSelect: (statusId: string) => void; // ADD THIS TYPE
 }) {
-  const handleStatusChange = async (value: string) => {
-    await updateLeadStatus(id, value);
-  };
-
   const getStatusColor = (statusLabel: string) => {
     const status = statusColumns.find((s) => s.label === statusLabel);
-    return status?.color || "#6b7280"; // Default gray if not found
+    return status?.color || "#6b7280";
   };
 
   return (
-    <Select defaultValue={currentStatus.id} onValueChange={handleStatusChange}>
+    <Select
+      defaultValue={currentStatus.id}
+      onValueChange={(value) => onStatusSelect(value)} // REPORT TO PARENT
+    >
       <SelectTrigger
         className={cn(
           "w-[120px] h-7 text-[10px] font-black uppercase tracking-widest rounded-full border border-transparent transition-all shadow-none px-3 focus:ring-0",
         )}
         style={{
-          backgroundColor: `${getStatusColor(currentStatus.label)}20`, // Add transparency
+          backgroundColor: `${getStatusColor(currentStatus.label)}20`,
           color: getStatusColor(currentStatus.label),
         }}
       >
