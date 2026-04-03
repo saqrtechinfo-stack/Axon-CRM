@@ -25,7 +25,7 @@ model Company {
   domain String?
   logo   String?
   plan   String  @default("BASIC")
-  status String  @default("ACTIVE") // Keep this so your migration doesn't fail
+  status String  @default("ACTIVE")
 
   // Relationships
   users        User[]
@@ -35,28 +35,11 @@ model Company {
   statuses     LeadStatus[]
   invitations  CompanyInvitation[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+  // FIXED: Added these back-relations
+  categories Category[]
+  products   Product[]
+  quotations Quotation[]
 
-model Department {
-  id        String  @id @default(cuid())
-  name      String
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  users     User[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Designation {
-  id        String  @id @default(cuid())
-  name      String
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -82,12 +65,34 @@ model User {
   manager      User?   @relation("ReportsTo", fields: [managerId], references: [id])
   subordinates User[]  @relation("ReportsTo")
 
-  leads Lead[]
-
+  leads       Lead[]
   activities  LeadActivity[]
-  // FIXED NAME HERE to match the relation name in CompanyInvitation
   invitations CompanyInvitation[] @relation("UserToInvitation")
 
+  createdQuotations Quotation[] @relation("QuotationCreator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department {
+  id        String  @id @default(cuid())
+  name      String
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Designation {
+  id        String  @id @default(cuid())
+  name      String
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  users     User[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -117,8 +122,19 @@ model Lead {
   nextFollowUp  DateTime? // For the "Next Follow-up" card
   followUpNotes String?
   activities    LeadActivity[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+
+  address  String?
+  location String? // Maps Link
+  brand    String?
+  source   String? // WhatsApp, Instagram, Referral
+
+  // Relationships
+  products    Product[]    @relation("LeadProducts")
+  quotations  Quotation[]
+  attachments Attachment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model LeadStatus {
@@ -151,8 +167,7 @@ model LeadActivity {
   createdAt DateTime @default(now())
 }
 
-// Add this to your Lead model:
-// activities LeadActivity[]
+
 model CompanyInvitation {
   id     String @id @default(cuid())
   email  String
@@ -171,4 +186,82 @@ model CompanyInvitation {
   updatedAt DateTime @updatedAt
 
   @@unique([email, companyId])
+}
+
+// --- PRODUCT CATALOG ---
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  price       Float   @default(0)
+  unit        String  @default("pcs") // pcs, hrs, sqm, etc.
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  leads     Lead[]   @relation("LeadProducts") // Many-to-many: Leads interested in products
+  createdAt DateTime @default(now())
+}
+
+// --- QUOTATION SYSTEM ---
+
+model Quotation {
+  id      String @id @default(cuid())
+  qId     String @unique // e.g., QT-2026-001
+  status  String @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED
+  version Int    @default(1)
+
+  // Totals
+  subTotal    Float
+  taxAmount   Float @default(0)
+  discount    Float @default(0)
+  totalAmount Float
+
+  // Relations
+  leadId      String
+  lead        Lead    @relation(fields: [leadId], references: [id])
+  createdById String
+  createdBy   User    @relation("QuotationCreator", fields: [createdById], references: [id])
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id])
+
+  items     QuotationItem[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  description String // Snapshot of product name/desc
+  quantity    Float
+  unitPrice   Float
+  total       Float
+}
+
+model Attachment {
+  id   String  @id @default(cuid())
+  name String // Original filename
+  url  String // The URL from your file host (Uploadthing/S3)
+  size Int? // Size in bytes
+  type String? // MIME type (image/pdf/etc)
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }

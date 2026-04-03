@@ -1,4 +1,3 @@
-// components/kanban/KanbanBoard.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,13 +5,13 @@ import {
   DndContext,
   DragEndEvent,
   closestCorners,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
-import { updateLeadStatus } from "@/actions/lead-actions";
+import { StatusChangeModal } from "../StatusChangeModal"; // Import the modal we built
+import { useRouter } from "next/navigation";
 
 export function KanbanBoard({
   initialLeads,
@@ -21,22 +20,23 @@ export function KanbanBoard({
   initialLeads: any[];
   statusColumns: any[];
 }) {
-  // Use local state to handle the drag-and-drop instantly
+  const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [mounted, setMounted] = useState(false);
 
-  // Sync local state if initialLeads changes (e.g., after a database refresh)
+  // NEW: State to track the move before it happens
+  const [pendingMove, setPendingMove] = useState<{
+    lead: any;
+    status: any;
+  } | null>(null);
+
   useEffect(() => {
     setMounted(true);
     setLeads(initialLeads);
   }, [initialLeads]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5, // Prevents accidental drags when clicking
-      },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -44,62 +44,61 @@ export function KanbanBoard({
     if (!over) return;
 
     const leadId = active.id as string;
-    let newStatusId = over.id as string;
+    let targetStatusId = over.id as string;
 
-    // If we dropped on a Card, 'over.id' is a Lead ID (starts with 'cm...')
-    // If we dropped on a Column, 'over.id' is a Status ID
-    const isValidStatusId = statusColumns.some((col) => col.id === newStatusId);
+    // Check if we dropped on a column or another card
+    const targetStatus = statusColumns.find((col) => col.id === targetStatusId);
 
-    if (!isValidStatusId) {
-      // If it's not a status ID, it means we dropped on another Card.
-      // We need to find what column that other card belongs to.
-      const targetLead = leads.find((l) => l.id === newStatusId);
+    if (!targetStatus) {
+      const targetLead = leads.find((l) => l.id === targetStatusId);
       if (targetLead) {
-        newStatusId = targetLead.statusId; // Set the statusId to the target card's statusId
+        targetStatusId = targetLead.statusId;
       } else {
-        return; // If we can't find the status or lead, abort.
+        return;
       }
     }
 
-    // Now proceed with the rest of your logic
     const activeLead = leads.find((l) => l.id === leadId);
-    if (!activeLead || activeLead.statusId === newStatusId) return;
+    if (!activeLead || activeLead.statusId === targetStatusId) return;
 
-    // Optimistic UI - update the lead's status in local state
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, statusId: newStatusId } : l)),
-    );
-
-    // Database Update
-    const result = await updateLeadStatus(leadId, newStatusId);
-    if (!result.success) {
-      setLeads(initialLeads);
-      alert("Failed to update status.");
-    }
+    // INTERCEPT: Instead of updating DB, open the modal
+    const finalStatus = statusColumns.find((s) => s.id === targetStatusId);
+    setPendingMove({ lead: activeLead, status: finalStatus });
   }
 
-  // This prevents the "Hydration Mismatch" by waiting for the client to be ready
   if (!mounted)
     return (
       <div className="flex gap-4 h-full min-h-[70vh]">Loading Board...</div>
     );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-4 h-full min-h-[70vh] items-start">
-        {statusColumns.map((status) => (
-          <KanbanColumn
-            key={status.id}
-            status={status}
-            // Pass ONLY the leads belonging to this column
-            leads={leads.filter((l) => l.statusId === status.id)}
-          />
-        ))}
-      </div>
-    </DndContext>
+    <>
+      {/* THE INTERCEPTOR MODAL */}
+      <StatusChangeModal
+        isOpen={!!pendingMove}
+        lead={pendingMove?.lead}
+        targetStatus={pendingMove?.status}
+        onClose={() => {
+          setPendingMove(null);
+          router.refresh(); // This forces the cards to snap back if cancelled
+        }}
+      />
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 h-full min-h-[70vh] items-start overflow-x-auto pb-4">
+          {statusColumns.map((status) => (
+            <KanbanColumn
+              key={status.id}
+              status={status}
+              leads={leads.filter((l) => l.statusId === status.id)}
+            />
+          ))}
+        </div>
+      </DndContext>
+    </>
   );
 }

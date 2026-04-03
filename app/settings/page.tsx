@@ -32,12 +32,21 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  // Get lead statuses for the company
-  const leadStatuses = await prisma.leadStatus.findMany({
-    where: { companyId: company.id },
-    orderBy: { order: "asc" },
-  });
-
+  // --- FETCH ALL DATA HERE ---
+  const [leadStatuses, departments, designations] = await Promise.all([
+    prisma.leadStatus.findMany({
+      where: { companyId: company.id },
+      orderBy: { order: "asc" },
+    }),
+    prisma.department.findMany({
+      where: { companyId: company.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.designation.findMany({
+      where: { companyId: company.id },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div>
@@ -53,6 +62,8 @@ export default async function SettingsPage() {
         company={company}
         initialStatuses={leadStatuses}
         userRole={dbUser.role}
+        departments={departments}
+        designations={designations}
       />
     </div>
   );

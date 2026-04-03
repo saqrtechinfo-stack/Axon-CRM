@@ -80,49 +80,6 @@ export async function updateLeadDetails(id: string, data: any) {
   }
 }
 
-// export async function updateLeadStatus(
-//   id: string,
-//   newStatusId: string,
-//   remarks: string,
-// ) {
-//   const { userId } = await auth();
-//   const dbUser = await prisma.user.findUnique({ where: { clerkId: userId! } });
-
-//   try {
-//     await prisma.$transaction(async (tx) => {
-//       const currentLead = await tx.lead.findUnique({
-//         where: { id },
-//         include: { status: true },
-//       });
-//       const newStatus = await tx.leadStatus.findUnique({
-//         where: { id: newStatusId },
-//       });
-
-//       // Update Lead
-//       await tx.lead.update({
-//         where: { id },
-//         data: { statusId: newStatusId },
-//       });
-
-//       // Log Activity
-//       await tx.leadActivity.create({
-//         data: {
-//           type: "STATUS_CHANGE",
-//           content: `Status updated to ${newStatus?.label}`,
-//           remarks: remarks || "No additional notes provided.",
-//           leadId: id,
-//           userId: dbUser!.id,
-//         },
-//       });
-//     });
-
-//     revalidatePath("/enquiries");
-//     return { success: true };
-//   } catch (error) {
-//     return { success: false };
-//   }
-// }
-//  updateLead Status
 export async function updateLeadStatus(
   leadId: string,
   statusId: string,

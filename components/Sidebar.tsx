@@ -11,22 +11,24 @@ import {
   ShieldCheck,
   Menu,
   LogOut,
+  Package2, // Added for Inventory
+  Briefcase, // Added for Sales/Quotes
+  UserCheck, // Better icon for Staff
+  Layers, // Added for Categories
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
-// Types
+// Types stay the same as your provided code
 interface User {
   id: string;
   email: string;
   name?: string;
   role: string;
   companyId: string;
-  company?: {
-    name: string;
-  };
+  company?: { name: string };
 }
 
 interface NavContentProps {
@@ -36,41 +38,78 @@ interface NavContentProps {
   companyName: string;
 }
 
-// 1. Define Standard Application Routes
-const allRoutes = [
+// 1. Grouped Route Definition (Professional ERP Standard)
+const navigationGroups = [
   {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/",
-    roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+    group: "Overview",
+    routes: [
+      {
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        href: "/",
+        roles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+      },
+    ],
   },
   {
-    label: "Enquiries",
-    icon: Users,
-    href: "/enquiries",
-    roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+    group: "Sales & CRM",
+    routes: [
+      {
+        label: "Enquiries",
+        icon: Users,
+        href: "/enquiries",
+        roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+      },
+      {
+        label: "Pipeline",
+        icon: GitBranch,
+        href: "/pipeline",
+        roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+      },
+      {
+        label: "Quotations",
+        icon: Briefcase,
+        href: "/quotations",
+        roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+      },
+    ],
   },
   {
-    label: "Pipeline",
-    icon: GitBranch,
-    href: "/pipeline",
-    roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+    group: "Inventory",
+    routes: [
+      {
+        label: "Products",
+        icon: Package2,
+        href: "/inventory/products",
+        roles: ["ADMIN", "MANAGER"],
+      },
+      {
+        label: "Categories",
+        icon: Layers,
+        href: "/inventory/categories",
+        roles: ["ADMIN"],
+      },
+    ],
   },
   {
-    label: "Staff Management",
-    icon: ShieldCheck,
-    href: "/staff",
-    roles: ["ADMIN"], // Client admins manage their own staff
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    href: "/settings",
-    roles: ["ADMIN", "SUPER_ADMIN"], // Only admins can access settings
+    group: "Management",
+    routes: [
+      {
+        label: "Staff Management",
+        icon: UserCheck,
+        href: "/staff",
+        roles: ["ADMIN", "MANAGER"],
+      },
+      {
+        label: "Settings",
+        icon: Settings,
+        href: "/settings",
+        roles: ["ADMIN", "SUPER_ADMIN"],
+      },
+    ],
   },
 ];
 
-// 2. Define Super Admin Exclusive Routes (Axon Core)
 const systemRoutes = [
   { label: "Axon Core", icon: ShieldCheck, href: "/super-admin" },
   { label: "All Companies", icon: Building2, href: "/super-admin/companies" },
@@ -79,55 +118,65 @@ const systemRoutes = [
 function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
   const { signOut } = useClerk();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
-
-  // Avatar initial logic
   const initial = user?.name?.charAt(0) || user?.email?.charAt(0) || "U";
 
-  // Filter regular routes based on user role
-  const filteredRoutes = allRoutes.filter((route) =>
-    route.roles.includes(user?.role),
-  );
-
   return (
-    <div className="space-y-4 py-4 flex flex-col h-full bg-slate-900 text-white border-r border-slate-800">
-      <div className="px-6 py-2">
-        <h1 className="text-xl font-black tracking-tighter text-blue-400">
-          AXON CRM
+    <div className="flex flex-col h-full bg-slate-950 text-white border-r border-slate-800/50">
+      {/* Brand Section */}
+      <div className="px-7 py-8">
+        <h1 className="text-2xl font-black tracking-tighter text-white italic italic uppercase">
+          AXON<span className="ml-2 text-blue-500"> ERP</span>
         </h1>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">
+          Enterprise ERP
+        </p>
       </div>
 
-      <div className="flex-1 px-3 space-y-1">
-        {/* Render Standard Routes */}
-        {filteredRoutes.map((route) => {
-          const href = route.href;
+      <div className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
+        {navigationGroups.map((group) => {
+          // Filter routes in this group by role
+          const filteredRoutes = group.routes.filter((r) =>
+            r.roles.includes(user?.role),
+          );
+          if (filteredRoutes.length === 0) return null;
+
           return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={cn(
-                "text-sm group flex p-3 w-full justify-start font-bold rounded-lg transition-all",
-                pathname === href
-                  ? "text-white bg-white/10"
-                  : "text-slate-400 hover:bg-white/5",
-              )}
-            >
-              <route.icon
-                className={cn(
-                  "h-5 w-5 mr-3",
-                  pathname === href ? "text-blue-400" : "text-slate-400",
-                )}
-              />
-              {route.label}
-            </Link>
+            <div key={group.group} className="space-y-1">
+              <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-600 mb-3">
+                {group.group}
+              </p>
+              {filteredRoutes.map((route) => (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  onClick={onClose}
+                  className={cn(
+                    "text-xs group flex p-3 w-full justify-start font-bold rounded-xl transition-all duration-200",
+                    pathname === route.href
+                      ? "text-white bg-blue-600 shadow-lg shadow-blue-600/20"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200",
+                  )}
+                >
+                  <route.icon
+                    className={cn(
+                      "h-4 w-4 mr-3 transition-colors",
+                      pathname === route.href
+                        ? "text-white"
+                        : "text-slate-500 group-hover:text-blue-400",
+                    )}
+                  />
+                  {route.label}
+                </Link>
+              ))}
+            </div>
           );
         })}
 
-        {/* 3. Render System Management Section (Super Admin Only) */}
+        {/* System Management (Super Admin) */}
         {isSuperAdmin && (
-          <div className="pt-6">
-            <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
-              System Management
+          <div className="pt-4 border-t border-slate-800/50">
+            <p className="px-3 text-[10px] font-black uppercase tracking-widest text-rose-500 mb-3">
+              System Core
             </p>
             {systemRoutes.map((route) => (
               <Link
@@ -135,20 +184,13 @@ function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
                 href={route.href}
                 onClick={onClose}
                 className={cn(
-                  "text-sm group flex p-3 w-full justify-start font-bold rounded-lg transition-all",
+                  "text-xs group flex p-3 w-full justify-start font-bold rounded-xl transition-all",
                   pathname === route.href
-                    ? "text-white bg-blue-600/20 border border-blue-500/30"
-                    : "text-slate-400 hover:bg-white/5",
+                    ? "bg-rose-600/10 text-rose-500"
+                    : "text-slate-500 hover:bg-white/5",
                 )}
               >
-                <route.icon
-                  className={cn(
-                    "h-5 w-5 mr-3",
-                    pathname === route.href
-                      ? "text-blue-400"
-                      : "text-blue-500/50",
-                  )}
-                />
+                <route.icon className="h-4 w-4 mr-3" />
                 {route.label}
               </Link>
             ))}
@@ -156,23 +198,23 @@ function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
         )}
       </div>
 
-      {/* User Profile Section */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5">
-          <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center font-bold text-sm text-white border-2 border-blue-400/30 uppercase">
+      {/* Profile Section - Enhanced */}
+      <div className="p-4 mt-auto">
+        <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-900 border border-slate-800">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-black text-sm text-white shadow-inner">
             {initial}
           </div>
           <div className="flex-1 overflow-hidden">
-            <p className="text-xs font-bold truncate text-white">
-              {user?.name || "Initializing..."}
+            <p className="text-xs font-black truncate text-white uppercase tracking-tight italic">
+              {user?.name || "User"}
             </p>
-            <p className="text-[10px] text-slate-400 truncate font-semibold tracking-wide uppercase">
-              {isSuperAdmin ? "System Owner" : companyName || "No Company"}
+            <p className="text-[9px] text-slate-500 truncate font-black tracking-widest uppercase">
+              {companyName || "Al Saqr Tech"}
             </p>
           </div>
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
-            className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+            className="text-slate-500 hover:text-rose-500 p-2 transition-colors"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -182,6 +224,7 @@ function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
   );
 }
 
+// Sidebar export remains largely the same logic...
 export function Sidebar({
   user,
   companyName,
@@ -194,21 +237,20 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile Sidebar */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              className="bg-white shadow-md border-slate-200"
+              className="bg-slate-950 text-white border-slate-800 hover:bg-slate-900"
             >
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="p-0 w-72 bg-slate-900 border-none"
+            className="p-0 w-72 bg-slate-950 border-none"
           >
             <NavContent
               pathname={pathname}
@@ -219,9 +261,7 @@ export function Sidebar({
           </SheetContent>
         </Sheet>
       </div>
-
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex h-full w-72 flex-col fixed inset-y-0 z-50">
+      <div className="hidden lg:flex h-full w-72 flex-col fixed inset-y-0 z-50 shadow-2xl">
         <NavContent
           pathname={pathname}
           onClose={() => setOpen(false)}

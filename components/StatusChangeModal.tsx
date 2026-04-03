@@ -52,7 +52,7 @@ export function StatusChangeModal({
               {targetStatus?.label}
             </div>
           </div>
-          <DialogTitle className="text-xl font-black italic uppercase tracking-tighter">
+          <DialogTitle style={{wordSpacing:"3px"}} className="text-xl font-black italic uppercase tracking-tighter">
             Update Progress: {lead?.name}
           </DialogTitle>
           <p className="text-xs text-slate-500 font-medium">
