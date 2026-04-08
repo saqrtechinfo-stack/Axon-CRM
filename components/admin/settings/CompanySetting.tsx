@@ -22,9 +22,11 @@ export default function CompanySetting({
             Hierarchy Configuration
           </h2>
           <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
-            Toggle <b>"Authorized to Manage"</b> for titles like Manager,
-            Director, or Team Lead. Only employees with these designations will
-            appear in the <i>"Reporting To"</i> dropdown during onboarding.
+            Enable <b>“Authorized to Manage”</b> for roles like Manager,
+            Director, or Team Lead. Only employees with these roles will be
+            available in the
+            <b>“Reporting To”</b> dropdown when assigning a manager during
+            onboarding.
           </p>
         </div>
       </div>

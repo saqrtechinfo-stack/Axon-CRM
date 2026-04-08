@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createDepartment, updateDepartment } from "@/actions/org-actions"; // Added update action
+import {
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "@/actions/org-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,34 +15,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
-  GitMerge,
   Building2,
   UserCheck,
-  Plus,
-  ChevronRight,
-  Layers,
   ArrowRight,
   Edit2,
   X,
   Check,
   AlertCircle,
+  Layers,
+  GitMerge,
+  Trash2,
 } from "lucide-react";
+
 import { toast } from "sonner";
 
 export function DepartmentTab({
   departments = [],
   employees = [],
+  managers = [],
 }: {
   departments: any[];
   employees: any[];
+  managers: any[];
 }) {
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<string | "none">("none");
   const [managerId, setManagerId] = useState<string | "none">("none");
   const [loading, setLoading] = useState(false);
-
+console.log("managers",managers)
   const handleAdd = async () => {
     if (!name.trim()) return;
     setLoading(true);
@@ -61,14 +67,15 @@ export function DepartmentTab({
 
   const mainDepartments = departments.filter((d) => !d.parentId);
 
+  
+
   return (
     <div className="space-y-8">
-      {/* SECTION 1: THE ARCHITECT (ADD FORM) */}
+      {/* SECTION 1: ADD FORM */}
       <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl">
         <div className="absolute top-0 right-0 p-10 opacity-10">
           <GitMerge className="h-40 w-40 text-white" />
         </div>
-
         <div className="relative z-10 space-y-6">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
@@ -92,8 +99,8 @@ export function DepartmentTab({
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Sales, SEO Team"
-                className="rounded-xl border-none bg-white/5 text-white h-12 focus-visible:ring-indigo-500 placeholder:text-slate-600"
+                placeholder="e.g. Sales"
+                className="rounded-xl border-none bg-white/5 text-white h-12 focus-visible:ring-indigo-500"
               />
             </div>
 
@@ -102,7 +109,7 @@ export function DepartmentTab({
                 Parent Division
               </label>
               <Select onValueChange={setParentId} value={parentId}>
-                <SelectTrigger className="rounded-xl border-none bg-white/5 text-white h-12">
+                <SelectTrigger className="rounded-xl border-none bg-white/5 text-white h-12 text-left">
                   <SelectValue placeholder="Standalone" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-slate-800 bg-slate-900 text-slate-200">
@@ -121,12 +128,12 @@ export function DepartmentTab({
                 Assign Lead
               </label>
               <Select onValueChange={setManagerId} value={managerId}>
-                <SelectTrigger className="rounded-xl border-none bg-white/5 text-white h-12">
+                <SelectTrigger className="rounded-xl border-none bg-white/5 text-white h-12 text-left">
                   <SelectValue placeholder="No Lead" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-slate-800 bg-slate-900 text-slate-200">
                   <SelectItem value="none">Set Later (Vacant)</SelectItem>
-                  {employees.map((emp) => (
+                  {managers.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.firstName} {emp.lastName}
                     </SelectItem>
@@ -138,16 +145,16 @@ export function DepartmentTab({
             <Button
               onClick={handleAdd}
               disabled={loading || !name}
-              className="rounded-xl bg-indigo-600 hover:bg-indigo-500 h-12 font-black uppercase text-xs tracking-widest transition-all hover:scale-[1.02]"
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-500 h-12 font-black uppercase text-xs tracking-widest"
             >
-              {loading ? "Syncing..." : "Build Unit"}
+              {loading ? "Syncing..." : "Build Unit"}{" "}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: THE VISUAL TREE */}
+      {/* SECTION 2: TREE */}
       <Card className="border-slate-100 rounded-[2.5rem] shadow-sm overflow-hidden bg-white p-8">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
@@ -156,7 +163,6 @@ export function DepartmentTab({
             </h3>
             <div className="h-px flex-1 bg-slate-100" />
           </div>
-
           <div className="space-y-4">
             {mainDepartments.map((dept) => (
               <DepartmentTree
@@ -164,6 +170,7 @@ export function DepartmentTab({
                 dept={dept}
                 allDepts={departments}
                 employees={employees}
+                managers={managers}
               />
             ))}
           </div>
@@ -173,13 +180,14 @@ export function DepartmentTab({
   );
 }
 
-function DepartmentTree({ dept, allDepts, level = 0, employees = [] }: any) {
+function DepartmentTree({ dept, allDepts, level = 0, employees = [],managers=[] }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(dept.name);
   const [editManagerId, setEditManagerId] = useState(dept.managerId || "none");
   const [loading, setLoading] = useState(false);
 
   const children = allDepts.filter((d: any) => d.parentId === dept.id);
+ 
 
   const handleUpdate = async () => {
     setLoading(true);
@@ -194,6 +202,30 @@ function DepartmentTree({ dept, allDepts, level = 0, employees = [] }: any) {
       toast.error("Update failed");
     }
     setLoading(false);
+  };
+
+  const triggerDelete = () => {
+    toast.error("Confirm Deletion", {
+      description: `Are you sure you want to remove the "${dept.name}" unit?`,
+      duration: 5000,
+      action: {
+        label: "Delete Now",
+        onClick: async () => {
+          setLoading(true);
+          const res = await deleteDepartment(dept.id);
+          if (res.success) {
+            toast.success("Unit deleted successfully");
+          } else {
+            toast.error(res.error);
+          }
+          setLoading(false);
+        },
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => toast.dismiss(),
+      },
+    });
   };
 
   return (
@@ -229,15 +261,15 @@ function DepartmentTree({ dept, allDepts, level = 0, employees = [] }: any) {
               <Input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="h-8 rounded-lg text-xs font-bold w-40"
+                className="h-9 rounded-xl text-xs font-bold w-48"
               />
               <Select onValueChange={setEditManagerId} value={editManagerId}>
-                <SelectTrigger className="h-8 rounded-lg text-xs font-bold w-40">
+                <SelectTrigger className="h-9 rounded-xl text-xs font-bold w-48 text-left">
                   <SelectValue placeholder="Assign Lead" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl">
                   <SelectItem value="none">No Lead</SelectItem>
-                  {employees.map((emp: any) => (
+                  {managers.map((emp: any) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.firstName} {emp.lastName}
                     </SelectItem>
@@ -252,9 +284,10 @@ function DepartmentTree({ dept, allDepts, level = 0, employees = [] }: any) {
               </p>
               <div className="flex items-center gap-3 mt-1">
                 {dept.manager ? (
-                  <p className="text-[9px] font-bold text-indigo-500 uppercase flex items-center gap-1">
-                    <UserCheck className="h-3 w-3" /> {dept.manager.firstName}{" "}
-                    {dept.manager.lastName}
+                  <p className="text-[9px] font-bold text-indigo-500 uppercase flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded-md">
+                    <UserCheck className="h-3 w-3" />{" "}
+                    <span className="text-slate-400 mr-1">LEAD:</span>{" "}
+                    {dept.manager.firstName} {dept.manager.lastName}
                   </p>
                 ) : (
                   <p className="text-[9px] font-bold text-amber-500 uppercase flex items-center gap-1 italic">
@@ -287,33 +320,50 @@ function DepartmentTree({ dept, allDepts, level = 0, employees = [] }: any) {
               </Button>
             </div>
           ) : (
-            <>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 bg-slate-200/50 px-3 py-1 rounded-full border border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                {dept.employees?.length || 0}{" "}
+                <span className="text-slate-400">Staff</span>
+              </div>
               <Button
                 onClick={() => setIsEditing(true)}
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Edit2 className="h-3 w-3 text-slate-400" />
+                <Edit2 className="h-3.5 w-3.5 text-slate-400" />
               </Button>
-              <div className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest shadow-sm">
-                {dept.employees?.length || 0} Staff
-              </div>
-            </>
+              <Button
+                onClick={triggerDelete}
+                disabled={loading}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
+              >
+                {loading ? (
+                  <div className="h-3 w-3 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
           )}
         </div>
       </div>
 
       <div className="mt-2 space-y-2">
-        {children.map((child: any) => (
-          <DepartmentTree
-            key={child.id}
-            dept={child}
-            allDepts={allDepts}
-            level={level + 1}
-            employees={employees}
-          />
-        ))}
+        {children &&
+          children.length > 0 &&
+          children.map((child: any) => (
+            <DepartmentTree
+              key={child.id}
+              dept={child}
+              allDepts={allDepts}
+              level={level + 1}
+              employees={employees}
+              managers={managers} // Now correctly drilling down
+            />
+          ))}
       </div>
     </div>
   );

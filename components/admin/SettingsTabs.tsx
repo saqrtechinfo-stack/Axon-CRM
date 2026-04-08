@@ -30,7 +30,8 @@ interface SettingsTabsProps {
   initialStatuses: any[];
   departments: any[];
   designations: any[];
-  employees: any[]; 
+  employees: any[];
+  managers: any[];
 }
 
 export function SettingsTabs({
@@ -38,9 +39,11 @@ export function SettingsTabs({
   initialStatuses,
   departments,
   designations,
+  managers,
   userRole,
   employees,
 }: SettingsTabsProps) {
+  console.log("managers", managers);
   return (
     <Tabs defaultValue="statuses" className="space-y-6">
       <TabsList className="grid w-full grid-cols-6 h-auto p-1 bg-slate-100/50 rounded-xl">
@@ -103,7 +106,7 @@ export function SettingsTabs({
 
       {/* NEW: Department Management Tab */}
       <TabsContent value="departments">
-        <DepartmentTab employees={employees} departments={departments} />
+        <DepartmentTab employees={employees} managers={managers} departments={departments} />
       </TabsContent>
 
       {/* NEW: Designation Management Tab */}

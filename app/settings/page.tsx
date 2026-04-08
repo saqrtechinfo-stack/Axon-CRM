@@ -42,8 +42,8 @@ export default async function SettingsPage() {
       prisma.department.findMany({
         where: { companyId: company.id },
         include: {
-          manager: true, // Crucial for showing the Lead Name in the list
-          employees: true, // Useful for the staff count badge
+          manager: true, 
+          employees: true,
         },
         orderBy: { createdAt: "desc" },
       }),
@@ -51,18 +51,19 @@ export default async function SettingsPage() {
         where: { companyId: company.id },
         orderBy: { createdAt: "desc" },
       }),
-      // ADD THIS: Fetching the employee master list
+
       prisma.employee.findMany({
         where: { companyId: company.id },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
+        include: {
+        designation:true,
         },
         orderBy: { firstName: "asc" },
       }),
     ]);
 
+ const managers = employees.filter((e) => e.designation?.isManagement === true);
+
+console.log(`Sending ${managers.length} employees to SettingsTabs`);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -81,7 +82,8 @@ export default async function SettingsPage() {
         userRole={dbUser.role}
         departments={departments}
         designations={designations}
-        employees={employees} // PASS THE DATA HERE
+        employees={employees} 
+        managers={managers} 
       />
     </div>
   );

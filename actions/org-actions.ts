@@ -63,6 +63,18 @@ export async function updateDepartment(
 }
 
 
+// actions/org-actions.ts
+export async function deleteDepartment(id: string) {
+  try {
+    // Note: This will fail if there are employees or sub-departments 
+    // depending on your Prisma 'onDelete' settings.
+    await prisma.department.delete({ where: { id } });
+    revalidatePath("/settings"); // adjust path accordingly
+    return { success: true };
+  } catch (error: any) {
+    return { error: "Cannot delete unit with active staff or sub-divisions." };
+  }
+}
 
 //Designation
 export async function createDesignation(name: string) {
