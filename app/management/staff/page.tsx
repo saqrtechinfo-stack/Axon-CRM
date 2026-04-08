@@ -76,6 +76,9 @@ const [employees, departments, designations] = await Promise.all([
             <h1 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase text-slate-900">
               Staff <span className="text-[#FF9E7D]">Management</span>
             </h1>
+            <div className="bg-slate-900 w-max p-4 text-white text-[10px] font-black px-2 py-0.5 rounded-full mt-1 italic">
+              {employees.length} employees
+            </div>
             <p className="text-sm text-slate-500 font-medium">
               Manage your team and organizational hierarchy.
             </p>
