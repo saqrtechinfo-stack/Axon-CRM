@@ -1,8 +1,9 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma"; 
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 
 export async function onboardEmployee(data: any) {
   try {
@@ -21,7 +22,8 @@ export async function onboardEmployee(data: any) {
 
     if (!dbUser?.company) throw new Error("Company settings not found");
 
-    const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(
+    async (tx: Prisma.TransactionClient) => {
       const generatedId = `${dbUser.company.empIdPrefix}${dbUser.company.nextEmpNumber}`;
 
       // 1. Create the Employee (HR Record)
@@ -79,7 +81,8 @@ export async function onboardEmployee(data: any) {
       });
 
       return employee;
-    });
+    },
+  );
 
     revalidatePath("/management/staff");
     return { success: true, data: result };

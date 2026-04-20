@@ -6,6 +6,7 @@ import "./globals.css";
 import { AuthLayout } from "@/components/AuthLayout";
 import { prisma } from "@/lib/prisma";
 import { Toaster } from "sonner";
+import { Prisma } from "@prisma/client";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -41,33 +42,35 @@ export default async function RootLayout({
         .trim();
 
       try {
-        dbUser = await prisma.$transaction(async (tx) => {
-          // Use updateMany or findFirst if email isn't unique,
-          // but assuming email is unique in your User model:
-          const updatedUser = await tx.user.update({
-            where: { email: email },
-            data: {
-              clerkId: userId,
-              status: "ACTIVE",
-            },
-            include: {
-              company: true,
-              department: true,
-              designation: true,
-            },
-          });
+        dbUser = await prisma.$transaction(
+          async (tx: Prisma.TransactionClient) => {
+            // Use updateMany or findFirst if email isn't unique,
+            // but assuming email is unique in your User model:
+            const updatedUser = await tx.user.update({
+              where: { email: email },
+              data: {
+                clerkId: userId,
+                status: "ACTIVE",
+              },
+              include: {
+                company: true,
+                department: true,
+                designation: true,
+              },
+            });
 
-          await tx.companyInvitation.updateMany({
-            where: {
-              email: email,
-              companyId: updatedUser.companyId,
-              status: "PENDING",
-            },
-            data: { status: "ACCEPTED" },
-          });
+            await tx.companyInvitation.updateMany({
+              where: {
+                email: email,
+                companyId: updatedUser.companyId,
+                status: "PENDING",
+              },
+              data: { status: "ACCEPTED" },
+            });
 
-          return updatedUser;
-        });
+            return updatedUser;
+          },
+        );
         console.log(`✅ AUTO-SYNC SUCCESS: Linked ${email}`);
       } catch (error) {
         console.log("⚠️ AUTO-SYNC SKIP: No pre-registered user found.");

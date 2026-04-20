@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 
 export async function registerNewTenant(formData: FormData) {
   const { userId } = await auth();
@@ -22,7 +23,7 @@ export async function registerNewTenant(formData: FormData) {
   const plan = formData.get("plan") as string;
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Create the Company
       const company = await tx.company.create({
         data: {
