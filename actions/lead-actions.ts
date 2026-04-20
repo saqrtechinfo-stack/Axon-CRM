@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
+
 export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -14,14 +15,17 @@ export async function createLead(formData: FormData) {
 
   if (!dbUser) return { success: false, error: "Profile not found" };
 
-  // Extraction of NEW fields
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
   const clientCompany = formData.get("company") as string;
-  const designation = formData.get("designation") as string; // NEW
-  const notes = formData.get("notes") as string; // NEW (Remarks)
+  const designation = formData.get("designation") as string;
+  const notes = formData.get("notes") as string;
   const value = parseFloat(formData.get("value") as string) || 0;
+
+  // VISIBILITY FIX:
+  // If the creator is not an Admin, assign the lead to them automatically.
+  const assignedToId = dbUser.role === "SALES_EXECUTIVE" ? dbUser.id : null;
 
   const newStatus = await prisma.leadStatus.findFirst({
     where: { companyId: dbUser.companyId, label: "NEW" },
@@ -34,24 +38,21 @@ export async function createLead(formData: FormData) {
         email,
         phone: phone || null,
         clientCompany: clientCompany || null,
-        designation: designation || null, // Ensure this exists in schema.prisma
-        notes: notes || null, // This is your "Remarks"
+        designation: designation || null,
+        notes: notes || null,
         value,
         statusId: newStatus?.id,
         companyId: dbUser.companyId,
         ownerId: dbUser.id,
+        assignedToId: assignedToId, // CRITICAL: This ensures employees see their created leads
       },
     });
 
-    revalidatePath("/");
     revalidatePath("/enquiries");
     return { success: true };
   } catch (error) {
     console.error("Creation Error:", error);
-    return {
-      success: false,
-      error: "Database failure. Check if schema matches fields.",
-    };
+    return { success: false, error: "Failed to create lead." };
   }
 }
 

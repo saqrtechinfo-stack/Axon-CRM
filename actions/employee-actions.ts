@@ -12,6 +12,7 @@ export async function onboardEmployee(data: any) {
     const dbUser = await prisma.user.findUnique({
       where: { clerkId: userId },
       select: {
+        id: true,
         company: {
           select: { id: true, empIdPrefix: true, nextEmpNumber: true },
         },
@@ -23,7 +24,7 @@ export async function onboardEmployee(data: any) {
     const result = await prisma.$transaction(async (tx) => {
       const generatedId = `${dbUser.company.empIdPrefix}${dbUser.company.nextEmpNumber}`;
 
-      // 3. Create the Employee (HR Record)
+      // 1. Create the Employee (HR Record)
       const employee = await tx.employee.create({
         data: {
           employeeId: generatedId,
@@ -34,29 +35,44 @@ export async function onboardEmployee(data: any) {
           designationId: data.designationId,
           departmentId: data.departmentId,
           role: data.role || "STAFF",
+          reportingToId: data.reportingToId || null,
           companyId: dbUser.company.id,
           status: "ACTIVE",
-          // ... other fields
         },
       });
 
-      // --- ADD THIS: 3.5 Create the User (Login Record) ---
-      // This is what prevents "Access Denied"
+      // 2. Create the User (Login/CRM Record)
+      // FIX: We need to find if the 'reportingToId' (Employee ID) has a corresponding User ID
+      let managerUserId = null;
+      if (data.reportingToId) {
+        const managerEmp = await tx.employee.findUnique({
+          where: { id: data.reportingToId },
+          select: { email: true },
+        });
+        if (managerEmp) {
+          const managerUser = await tx.user.findUnique({
+            where: { email: managerEmp.email },
+          });
+          managerUserId = managerUser?.id;
+        }
+      }
+
       await tx.user.create({
         data: {
-          email: data.email, // This MUST match the email they use to sign up
+          email: data.email.toLowerCase().trim(), // Normalize email
           name: `${data.firstName} ${data.lastName}`,
           companyId: dbUser.company.id,
+          // Ensure role matches your Prisma Enum exactly
           role:
             data.role === "SUPERVISOR" || data.role === "MANAGER"
               ? "MANAGER"
               : "SALES_EXECUTIVE",
+          managerId: managerUserId, // Links the hierarchy in the User table
           status: "ACTIVE",
-          // Note: We leave clerkId null; your AuthLayout sync logic will fill it on first login
         },
       });
 
-      // 4. Increment the counter
+      // 3. Increment Company counter
       await tx.company.update({
         where: { id: dbUser.company.id },
         data: { nextEmpNumber: { increment: 1 } },
@@ -69,12 +85,9 @@ export async function onboardEmployee(data: any) {
     return { success: true, data: result };
   } catch (error: any) {
     console.error("ONBOARDING_ERROR:", error);
-
-    // Handle Prisma unique constraint for Email or EmployeeID
     if (error.code === "P2002") {
-      return { error: "An employee with this Email or ID already exists." };
+      return { error: "An employee or user with this Email already exists." };
     }
-
     return { error: error.message || "Failed to onboard employee." };
   }
 }

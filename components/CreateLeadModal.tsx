@@ -13,21 +13,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea"; // Ensure you have this shadcn component
-import { PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle, Loader2, Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 export function CreateLeadModal() {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  async function handleSubmit(formData: FormData) {
-    setLoading(true);
-    const result = await createLead(formData);
-    setLoading(false);
-    if (result.success) {
-      setOpen(false);
-    }
-  }
-
+   async function handleSubmit(formData: FormData) {
+     if (isSubmitting) return; // Logic guard
+  
+     setIsSubmitting(true);
+     try {
+       const result = await createLead(formData);
+       if (result.success) {
+         setOpen(false);
+       } else {
+         toast.error(result.error);
+       }
+     } finally {
+      toast.success("New Lead Created")
+       setIsSubmitting(false);
+     }
+   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -42,7 +50,15 @@ export function CreateLeadModal() {
             NEW ENQUIRY
           </DialogTitle>
         </DialogHeader>
-        <form action={handleSubmit} className="space-y-4 pt-4">
+        {/* <form action={handleSubmit} className="space-y-4 pt-4"> */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            await handleSubmit(formData);
+          }}
+          className="space-y-4 pt-4"
+        >
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label
@@ -157,14 +173,17 @@ export function CreateLeadModal() {
           </div>
 
           <Button
-            disabled={loading}
+            disabled={isSubmitting}
             type="submit"
             className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 mt-4 shadow-md"
           >
-            {loading ? (
-              <Loader2 className="animate-spin h-5 w-5" />
+            {isSubmitting ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="animate-spin h-5 w-5" />
+                <span>Saving...</span>
+              </div>
             ) : (
-              "SAVE ENQUIRY"
+              "Save Enquiry"
             )}
           </Button>
         </form>

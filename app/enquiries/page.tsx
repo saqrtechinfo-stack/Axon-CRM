@@ -19,13 +19,17 @@ export default async function EnquiriesPage() {
   const whereClause: any = { companyId: dbUser.companyId };
 
   if (dbUser.role === "SALES_EXECUTIVE") {
+    // Staff: ONLY leads explicitly assigned to them
     whereClause.assignedToId = dbUser.id;
   } else if (dbUser.role === "MANAGER") {
+    // Manager: See leads assigned to self, direct reports, OR unassigned leads
     whereClause.OR = [
-      { assignedToId: dbUser.id },
-      { assignedTo: { managerId: dbUser.id } },
+      { assignedToId: dbUser.id }, // Assigned to manager
+      { assignedTo: { managerId: dbUser.id } }, // Assigned to manager's team
+      { assignedToId: null }, // Unassigned (so they can delegate)
     ];
   }
+  // ADMIN: No extra filter needed, they see all companyId leads
 
   // --- NEW: FETCH AVAILABLE STAFF FOR ASSIGNMENT ---
   let availableStaff: any[] = [];

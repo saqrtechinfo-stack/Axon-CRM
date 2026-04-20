@@ -1,3 +1,4 @@
+// app/layout.tsx
 import { ClerkProvider } from "@clerk/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { Inter } from "next/font/google";
@@ -7,6 +8,9 @@ import { prisma } from "@/lib/prisma";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
+
+// FORCE NEXT.JS TO NOT CACHE THIS LAYOUT
+export const dynamic = "force-dynamic";
 
 export default async function RootLayout({
   children,
@@ -19,7 +23,7 @@ export default async function RootLayout({
   let dbUser = null;
 
   if (userId) {
-    // 1. Primary Check: Find by Clerk ID
+    // 1. Try finding by Clerk ID first
     dbUser = await prisma.user.findUnique({
       where: { clerkId: userId },
       include: {
@@ -29,18 +33,22 @@ export default async function RootLayout({
       },
     });
 
-    // 2. AUTO-SYNC BRIDGE: If Clerk ID isn't linked yet, match by Email
+    // 2. AUTO-SYNC BRIDGE: Fallback to Email if ID isn't linked
     if (!dbUser && clerkUser?.emailAddresses[0]?.emailAddress) {
-      const email = clerkUser.emailAddresses[0].emailAddress;
+      // TRICK: Always use lowercase for email comparison
+      const email = clerkUser.emailAddresses[0].emailAddress
+        .toLowerCase()
+        .trim();
 
       try {
-        // We use a transaction to ensure both User and Invitation update together
         dbUser = await prisma.$transaction(async (tx) => {
+          // Use updateMany or findFirst if email isn't unique,
+          // but assuming email is unique in your User model:
           const updatedUser = await tx.user.update({
             where: { email: email },
             data: {
               clerkId: userId,
-              status: "ACTIVE", // Move from PENDING to ACTIVE
+              status: "ACTIVE",
             },
             include: {
               company: true,
@@ -49,7 +57,6 @@ export default async function RootLayout({
             },
           });
 
-          // Mark any invitations for this email/company as accepted
           await tx.companyInvitation.updateMany({
             where: {
               email: email,
@@ -61,29 +68,19 @@ export default async function RootLayout({
 
           return updatedUser;
         });
-
-        console.log(
-          `✅ AUTO-SYNC SUCCESS: Linked ${email} to ${dbUser?.company?.name}`,
-        );
+        console.log(`✅ AUTO-SYNC SUCCESS: Linked ${email}`);
       } catch (error) {
-        // This means the user signed up with an email that isn't in your DB yet
-        console.log(
-          "⚠️ AUTO-SYNC SKIP: No pre-registered user found for this email.",
-        );
+        console.log("⚠️ AUTO-SYNC SKIP: No pre-registered user found.");
       }
     }
   }
 
   return (
     <ClerkProvider>
-      <html lang="en" className="">
+      <html lang="en">
         <body
           className={`${inter.className} bg-slate-950 text-slate-200 antialiased`}
         >
-          {/* AuthLayout handles the sidebar/topbar logic. 
-              If dbUser is null but userId exists, AuthLayout should 
-              ideally show a "Waiting for Approval" or "Contact Admin" screen.
-          */}
           <AuthLayout dbUser={dbUser}>{children}</AuthLayout>
           <Toaster position="top-right" richColors closeButton />
         </body>

@@ -44,20 +44,33 @@ export function AuthLayout({ children, dbUser }: AuthLayoutProps) {
     );
   }
 
-  // 3. LOGGED IN BUT NO DB RECORD (UNAUTHORIZED)
+
+  // 3. LOGGED IN BUT NO DB RECORD (STABILIZATION CHECK)
   if (user && !dbUser) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-center px-6">
-        <h2 className="text-2xl font-bold text-white">Access Denied</h2>
-        <p className="text-slate-400 mt-2">
-          Your email is not registered with any company.
-        </p>
-        <button
-          onClick={() => (window.location.href = "mailto:support@alsaqr.ae")}
-          className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold"
-        >
-          Contact Admin
-        </button>
+      <div className="h-screen w-full flex items-center justify-center bg-slate-900">
+        <div className="flex flex-col items-center space-y-6 text-center px-4">
+          {/* A more professional sync loader */}
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full border-t-2 border-b-2 border-blue-500 animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              Setting up your workspace...
+            </h2>
+            <p className="text-slate-400 text-sm max-w-[280px]">
+              We're syncing your credentials and preparing your dashboard. This
+              will only take a moment.
+            </p>
+          </div>
+
+          {/* Optional: A hidden fallback that only shows the "Contact Admin" button 
+            after 5-7 seconds if dbUser remains null */}
+        </div>
       </div>
     );
   }
