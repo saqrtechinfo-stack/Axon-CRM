@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma"; 
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export async function onboardEmployee(data: any) {
   try {
