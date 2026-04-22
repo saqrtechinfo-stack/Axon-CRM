@@ -1,5 +1,6 @@
 // app/layout.tsx
 import { ClerkProvider } from "@clerk/nextjs";
+import NextTopLoader from "nextjs-toploader";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -7,6 +8,8 @@ import { AuthLayout } from "@/components/AuthLayout";
 import { prisma } from "@/lib/prisma";
 import { Toaster } from "sonner";
 import { Prisma } from "@prisma/client";
+import { Suspense } from "react";
+import Loading from "./loading";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -84,7 +87,14 @@ export default async function RootLayout({
         <body
           className={`${inter.className} bg-slate-950 text-slate-200 antialiased`}
         >
-          <AuthLayout dbUser={dbUser}>{children}</AuthLayout>
+          <NextTopLoader
+            color="#FF9E7D"
+            showSpinner={false}
+            shadow="0 0 10px #FF9E7D,0 0 5px #FF9E7D"
+          />
+          <AuthLayout dbUser={dbUser}>
+            <Suspense fallback={<Loading />}>{children}</Suspense>
+          </AuthLayout>
           <Toaster position="top-right" richColors closeButton />
         </body>
       </html>

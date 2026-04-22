@@ -72,6 +72,7 @@ model User {
   invitations CompanyInvitation[] @relation("UserToInvitation")
 
   createdQuotations Quotation[] @relation("QuotationCreator")
+  isSystemAdmin Boolean    @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,27 +87,27 @@ enum EmployeeRole {
 }
 
 model Employee {
-  id         String  @id @default(cuid())
-  employeeId String  @unique
-  imageUrl   String?
-  dob           DateTime?
-  gender    String?
+  id             String    @id @default(cuid())
+  employeeId     String    @unique
+  imageUrl       String?
+  dob            DateTime?
+  gender         String?
   // NEW: Emergency Contact
   emergencyName  String?
   emergencyPhone String?
 
   // NEW: Banking Details
-  bankName      String?
-  iban          String?
-  swiftCode     String?
+  bankName  String?
+  iban      String?
+  swiftCode String?
 
   // NEW: Attachments Relation
-  attachments   Attachment[] @relation("EmployeeAttachments")
-  firstName  String
-  lastName   String
-  email      String  @unique
-  phone      String
-  altPhone   String?
+  attachments Attachment[] @relation("EmployeeAttachments")
+  firstName   String
+  lastName    String
+  email       String       @unique
+  phone       String
+  altPhone    String?
 
   // Professional Master Data
   joiningDate   DateTime? @default(now())

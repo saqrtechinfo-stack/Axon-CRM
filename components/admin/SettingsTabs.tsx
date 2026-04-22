@@ -9,6 +9,8 @@ import {
   Building2,
   Briefcase,
   LayoutGrid,
+  SettingsIcon,
+  Settings2Icon,
 } from "lucide-react";
 import { LeadStatusesTab } from "./LeadStatusesTab";
 
@@ -79,14 +81,14 @@ export function SettingsTabs({
           value="erp-config"
           className="data-[state=active]:bg-slate-900 data-[state=active]:text-white"
         >
-          ERP Configuration
+          <Settings2Icon /> Company 
         </TabsTrigger>
         <TabsTrigger
           value="company"
           className="flex items-center gap-2 py-2 text-xs font-bold uppercase tracking-tight"
         >
           <Building2 className="h-4 w-4" />
-          Company
+          Hierarchy
         </TabsTrigger>
         {/* <TabsTrigger
           value="general"
@@ -106,7 +108,11 @@ export function SettingsTabs({
 
       {/* NEW: Department Management Tab */}
       <TabsContent value="departments">
-        <DepartmentTab employees={employees} managers={managers} departments={departments} />
+        <DepartmentTab
+          employees={employees}
+          managers={managers}
+          departments={departments}
+        />
       </TabsContent>
 
       {/* NEW: Designation Management Tab */}

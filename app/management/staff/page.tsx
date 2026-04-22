@@ -35,7 +35,6 @@ const [employees, departments, designations] = await Promise.all([
   prisma.employee.findMany({
     where: {
       companyId: dbUser.companyId,
-      // DYNAMIC FILTER LOGIC
       AND: [
         deptId ? { departmentId: deptId } : {},
         desigId ? { designationId: desigId } : {},
@@ -50,15 +49,31 @@ const [employees, departments, designations] = await Promise.all([
           : {},
       ],
     },
-    include: {
-      department: true,
-      designation: true,
-      reportingTo: true,
+    // OPTIMIZATION: Only fetch what the StaffCard needs
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      employeeId: true,
+      role: true,
+      status: true,
+      imageUrl: true,
+      joiningDate: true,
+      department: { select: { id: true, name: true } },
+      designation: { select: { id: true, name: true, isManagement: true } },
+      reportingTo: { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: { createdAt: "desc" },
   }),
-  prisma.department.findMany({ where: { companyId: dbUser.companyId } }),
-  prisma.designation.findMany({ where: { companyId: dbUser.companyId } }),
+  // For dropdowns, we only need ID and Name
+  prisma.department.findMany({
+    where: { companyId: dbUser.companyId },
+    select: { id: true, name: true },
+  }),
+  prisma.designation.findMany({
+    where: { companyId: dbUser.companyId },
+    select: { id: true, name: true, isManagement: true },
+  }),
 ]);
   // --- NEW DYNAMIC FILTER ---
   // Instead of checking hard-coded roles, we check the designation's authority
