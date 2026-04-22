@@ -79,7 +79,7 @@ console.log(`Sending ${managers.length} employees to SettingsTabs`);
       <SettingsTabs
         company={company}
         initialStatuses={leadStatuses}
-        userRole={dbUser.role}
+        // userRole={dbUser.role}
         departments={departments}
         designations={designations}
         employees={employees} 

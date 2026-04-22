@@ -40,7 +40,7 @@ export function SettingsTabs({
   departments,
   designations,
   managers,
-  userRole,
+  // userRole,
   employees,
 }: SettingsTabsProps) {
   console.log("managers", managers);

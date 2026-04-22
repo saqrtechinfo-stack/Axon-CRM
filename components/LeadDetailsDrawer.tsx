@@ -24,11 +24,11 @@ import { assignLead } from "@/actions/lead-actions";
 
 export function LeadDetailsDrawer({
   lead,
-  statusColumns = [], // Fallback to empty array to prevent .map() error
+  statusColumns, // Fallback to empty array to prevent .map() error
   isOpen,
   onClose,
   onUpdate,
-  availableStaff, 
+  availableStaff,
   currentUserRole,
 }: {
   lead: any;
@@ -36,6 +36,8 @@ export function LeadDetailsDrawer({
   isOpen: boolean;
   onClose: () => void;
   onUpdate: () => void;
+  currentUserRole: string;
+  availableStaff: any[];
 }) {
   if (!lead) return null;
 

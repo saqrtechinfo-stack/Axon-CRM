@@ -8,7 +8,7 @@ import {
 } from "@/actions/product-actions";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package2, Plus, Hash, Trash2, Edit3, Check, X } from "lucide-react";
+import {  Plus, Hash, Trash2, Edit3, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 export function CategoryTab({ categories = [] }: { categories: any[] }) {

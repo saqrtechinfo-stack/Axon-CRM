@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import {
   getCountries,
   getCountryCallingCode,
-  CountryCode,
 } from "react-phone-number-input";
+// import type { CountryCode } from "react-phone-number-input/types";
+type CountryCode = any;
 import en from "react-phone-number-input/locale/en.json";
 import {
   Dialog,
@@ -26,7 +27,6 @@ import {
   UserPlus,
   ShieldCheck,
   Camera,
-  X,
   Globe,
   MapPin,
   FileText,
@@ -35,7 +35,6 @@ import {
   Paperclip,
   CheckCircle2,
   HeartPulse,
-  Briefcase,
   Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,7 +48,7 @@ export function OnboardModal({
 }: any) {
   const [open, setOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>("AE");
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>("AE" as CountryCode);
   const [phoneCode, setPhoneCode] = useState("+971");
 
   // Track attachments: { categoryName: File }

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 export function StatusToggle({ id, status }: { id: string; status: string }) {
   const handleToggle = async () => {
-    const res = await toggleEmployeeStatus(id, status);
+    const res: any = await toggleEmployeeStatus(id, status);
     if (res?.error) {
       toast.error(res.error);
     } else {

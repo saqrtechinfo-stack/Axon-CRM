@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
 
+export function ERPConfig({ companyId }: { companyId: string }) {
+
 // Inside your Settings component
 const [prefix, setPrefix] = useState("TCS");
 const [startNum, setStartNum] = useState(1001);
@@ -39,3 +41,4 @@ const handleSave = async () => {
     Update Sequence
   </Button>
 </div>;
+}
