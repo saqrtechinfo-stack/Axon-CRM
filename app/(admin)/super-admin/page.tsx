@@ -1,25 +1,25 @@
-// app/(admin)/super-admin/page.tsx
 import { prisma } from "@/lib/prisma";
 import { CreateCompanyModal } from "@/components/admin/CreateCompanyModal";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { CompanyManagementTable } from "@/components/admin/CompanyManagementTable";
+
 export default async function SuperAdminDashboard() {
-  // Await the auth() call
   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/");
-  }
-  // Find user in YOUR database to check their role
+  if (!userId) redirect("/");
+
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId as string },
   });
 
-  if (dbUser?.role !== "SUPER_ADMIN") {
-    redirect("/"); // Kick them back to the normal dashboard
-  }
+  if (dbUser?.role !== "SUPER_ADMIN") redirect("/");
+
   const companies = await prisma.company.findMany({
-    include: { _count: { select: { users: true, leads: true } } },
+    include: {
+      _count: { select: { users: true, leads: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
@@ -43,44 +43,26 @@ export default async function SuperAdminDashboard() {
           </p>
           <h2 className="text-4xl font-black mt-2">{companies.length}</h2>
         </div>
-        {/* Add more stats like Total Revenue, Total Users here */}
+        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 border-l-emerald-500/50">
+          <p className="text-xs font-bold text-slate-500 uppercase">
+            Active Now
+          </p>
+          <h2 className="text-4xl font-black mt-2 text-emerald-400">
+            {companies.filter((c) => c.status === "ACTIVE").length}
+          </h2>
+        </div>
+        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 border-l-red-500/50">
+          <p className="text-xs font-bold text-slate-500 uppercase">
+            Attention Required
+          </p>
+          <h2 className="text-4xl font-black mt-2 text-red-400">
+            {/* Logic: Status is INACTIVE or Date is passed */}
+            {companies.filter((c) => c.status === "INACTIVE").length}
+          </h2>
+        </div>
       </div>
 
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-700/50 text-slate-400 text-[10px] uppercase font-bold">
-            <tr>
-              <th className="p-4">Company Name</th>
-              <th className="p-4">Plan</th>
-              <th className="p-4">Users</th>
-              <th className="p-4">Leads</th>
-              <th className="p-4 text-right">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {companies.map((co) => (
-              <tr
-                key={co.id}
-                className="hover:bg-slate-700/30 transition-colors"
-              >
-                <td className="p-4 font-bold">{co.name}</td>
-                <td className="p-4">
-                  <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs">
-                    {co.plan}
-                  </span>
-                </td>
-                <td className="p-4 text-slate-400">{co._count.users}</td>
-                <td className="p-4 text-slate-400">{co._count.leads}</td>
-                <td className="p-4 text-right">
-                  <span className="text-emerald-400 text-xs font-bold">
-                    ● Active
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CompanyManagementTable initialData={companies} />
     </div>
   );
 }

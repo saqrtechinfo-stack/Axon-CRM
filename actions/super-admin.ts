@@ -8,7 +8,6 @@ import { Prisma } from "@prisma/client";
 export async function registerNewTenant(formData: FormData) {
   const { userId } = await auth();
 
-  // 1. Fetch the sender (Super Admin)
   const sender = await prisma.user.findUnique({
     where: { clerkId: userId as string },
   });
@@ -17,22 +16,35 @@ export async function registerNewTenant(formData: FormData) {
     return { success: false, error: "Unauthorized access." };
   }
 
+  // Extract all fields
   const companyName = formData.get("companyName") as string;
+  const domain = formData.get("domain") as string;
+  const logo = formData.get("logo") as string;
+  const address = formData.get("address") as string;
   const adminEmail = formData.get("adminEmail") as string;
+  const adminPhone = formData.get("contactPhone") as string;
   const adminName = formData.get("adminName") as string;
   const plan = formData.get("plan") as string;
+  const subscriptionEnd = formData.get("subscriptionEnd") as string;
 
   try {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Create the Company
+    await prisma.$transaction(async (tx) => {
+      // 1. Create the Company with full branding
       const company = await tx.company.create({
         data: {
           name: companyName,
+          domain: domain || null,
+          logo: logo || null,
+          address: address || null,
           plan: plan || "BASIC",
+          status: "ACTIVE",
+          subscriptionEnd: subscriptionEnd ? new Date(subscriptionEnd) : null,
+          contactEmail: adminEmail,
+          contactPhone: adminPhone,
         },
       });
 
-      // Create Lead Statuses (Default Pipeline)
+      // 2. Default Lead Pipeline
       await tx.leadStatus.createMany({
         data: [
           {
@@ -70,7 +82,7 @@ export async function registerNewTenant(formData: FormData) {
         ],
       });
 
-      // Create the Admin User (Shadow Record)
+      // 3. Admin Shadow User
       await tx.user.create({
         data: {
           email: adminEmail,
@@ -81,15 +93,14 @@ export async function registerNewTenant(formData: FormData) {
         },
       });
 
-      // Create the Invitation
-      // NOTE: Using lowercase 'companyInvitation' as per Prisma naming conventions
+      // 4. Invitation logic
       await (tx as any).companyInvitation.create({
         data: {
           companyId: company.id,
           email: adminEmail,
           name: adminName,
           role: "ADMIN",
-          invitedBy: sender.id, // Fixed: accessing sender.id directly
+          invitedBy: sender.id,
           status: "PENDING",
         },
       });
@@ -98,21 +109,69 @@ export async function registerNewTenant(formData: FormData) {
     revalidatePath("/super-admin");
     return {
       success: true,
-      message: `Company "${companyName}" ready!`,
+      message: `Tenant ${companyName} successfully deployed.`,
     };
   } catch (error: any) {
-    console.error("DETAILED PRISMA ERROR:", error);
-
-    if (error.code === "P2002") {
-      return {
-        success: false,
-        error: `Conflict: This ${error.meta?.target} already exists.`,
-      };
-    }
-
+    console.error("ONBOARDING_ERROR:", error);
     return {
       success: false,
-      error: error.message || "Database synchronization failed.",
+      error: "Deployment failed. Ensure domain/email is unique.",
     };
   }
+}
+
+export async function updateCompanyProfile(
+  companyId: string,
+  formData: FormData,
+) {
+  const { userId } = await auth();
+  const sender = await prisma.user.findUnique({
+    where: { clerkId: userId as string },
+  });
+  if (sender?.role !== "SUPER_ADMIN")
+    return { success: false, error: "Unauthorized" };
+
+  try {
+    await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        name: formData.get("name") as string,
+        domain: formData.get("domain") as string,
+        logo: formData.get("logo") as string,
+        address: formData.get("address") as string,
+        plan: formData.get("plan") as string,
+        contactEmail: formData.get("contactEmail") as string,
+        contactPhone: formData.get("contactPhone") as string,
+        empIdPrefix: formData.get("empIdPrefix") as string,
+        subscriptionEnd: formData.get("subscriptionEnd")
+          ? new Date(formData.get("subscriptionEnd") as string)
+          : null,
+      },
+    });
+
+    revalidatePath("/super-admin");
+    return { success: true, message: "Tenant configuration synced." };
+  } catch (error) {
+    return { success: false, error: "Sync failed." };
+  }
+}
+
+export async function toggleCompanyStatus(
+  companyId: string,
+  currentStatus: string,
+) {
+  const { userId } = await auth();
+  const sender = await prisma.user.findUnique({
+    where: { clerkId: userId as string },
+  });
+  if (sender?.role !== "SUPER_ADMIN")
+    return { success: false, error: "Unauthorized" };
+
+  const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { status: newStatus as any },
+  });
+  revalidatePath("/super-admin");
+  return { success: true };
 }
