@@ -54,7 +54,7 @@ export function CreateLeadModal({
 
     setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
-
+    
     // Manually add the values from our custom Select components
     formData.append("categoryId", selectedCategoryId);
     formData.append("productId", selectedProductId);
@@ -85,7 +85,7 @@ export function CreateLeadModal({
           Add Enquiry
         </Button>
       </DialogTrigger>
-
+      
       <DialogContent className="sm:max-w-[550px] bg-white border-none shadow-2xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase">
@@ -101,20 +101,16 @@ export function CreateLeadModal({
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Layers className="h-3 w-3" /> Category
                 </Label>
-                <Select
-                  onValueChange={(val) => {
-                    setSelectedCategoryId(val);
-                    setSelectedProductId(""); // Reset product if category changes
-                  }}
-                >
+                <Select onValueChange={(val) => {
+                  setSelectedCategoryId(val);
+                  setSelectedProductId(""); // Reset product if category changes
+                }}>
                   <SelectTrigger className="bg-white border-slate-200">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -124,25 +120,17 @@ export function CreateLeadModal({
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Package className="h-3 w-3" /> Interest Product
                 </Label>
-                <Select
-                  disabled={!selectedCategoryId}
+                <Select 
+                  disabled={!selectedCategoryId} 
                   value={selectedProductId}
                   onValueChange={setSelectedProductId}
                 >
                   <SelectTrigger className="bg-white border-slate-200">
-                    <SelectValue
-                      placeholder={
-                        selectedCategoryId
-                          ? "Select Product"
-                          : "Pick Category..."
-                      }
-                    />
+                    <SelectValue placeholder={selectedCategoryId ? "Select Product" : "Pick Category..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredProducts.map((prod) => (
-                      <SelectItem key={prod.id} value={prod.id}>
-                        {prod.name}
-                      </SelectItem>
+                      <SelectItem key={prod.id} value={prod.id}>{prod.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -159,9 +147,7 @@ export function CreateLeadModal({
                 </SelectTrigger>
                 <SelectContent>
                   {availableStaff.map((staff) => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.name}
-                    </SelectItem>
+                    <SelectItem key={staff.id} value={staff.id}>{staff.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -171,74 +157,34 @@ export function CreateLeadModal({
           {/* Section 2: Client Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Contact Name
-              </Label>
-              <Input
-                name="name"
-                placeholder="John Doe"
-                required
-                className="bg-slate-50 border-none"
-              />
+              <Label className="text-[10px] font-black uppercase text-slate-400">Contact Name</Label>
+              <Input name="name" placeholder="John Doe" required className="bg-slate-50 border-none" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Company Name
-              </Label>
-              <Input
-                name="company"
-                placeholder="Al Saqr Client Ltd"
-                className="bg-slate-50 border-none"
-              />
+              <Label className="text-[10px] font-black uppercase text-slate-400">Company Name</Label>
+              <Input name="company" placeholder="Al Saqr Client Ltd" className="bg-slate-50 border-none" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Email Address
-              </Label>
-              <Input
-                name="email"
-                type="email"
-                placeholder="client@example.com"
-                required
-                className="bg-slate-50 border-none"
-              />
+              <Label className="text-[10px] font-black uppercase text-slate-400">Email Address</Label>
+              <Input name="email" type="email" placeholder="client@example.com" required className="bg-slate-50 border-none" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Phone / WhatsApp
-              </Label>
-              <Input
-                name="phone"
-                placeholder="+971..."
-                className="bg-slate-50 border-none"
-              />
+              <Label className="text-[10px] font-black uppercase text-slate-400">Phone / WhatsApp</Label>
+              <Input name="phone" placeholder="+971..." className="bg-slate-50 border-none" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400">
-              Estimated Value (AED)
-            </Label>
-            <Input
-              name="value"
-              type="number"
-              placeholder="0.00"
-              className="bg-slate-50 border-none font-bold text-blue-600"
-            />
+            <Label className="text-[10px] font-black uppercase text-slate-400">Estimated Value (AED)</Label>
+            <Input name="value" type="number" placeholder="0.00" className="bg-slate-50 border-none font-bold text-blue-600" />
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400">
-              Internal Remarks
-            </Label>
-            <Textarea
-              name="notes"
-              placeholder="Requirement details..."
-              className="bg-slate-50 border-none min-h-[80px] resize-none"
-            />
+            <Label className="text-[10px] font-black uppercase text-slate-400">Internal Remarks</Label>
+            <Textarea name="notes" placeholder="Requirement details..." className="bg-slate-50 border-none min-h-[80px] resize-none" />
           </div>
 
           <Button
