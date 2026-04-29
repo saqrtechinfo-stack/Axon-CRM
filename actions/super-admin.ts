@@ -82,9 +82,15 @@ export async function registerNewTenant(formData: FormData) {
         ],
       });
 
-      // 3. Admin Shadow User
-      await tx.user.create({
-        data: {
+      // 3. Admin Shadow User (Changed to upsert to prevent unique email crash)
+      await tx.user.upsert({
+        where: { email: adminEmail },
+        update: {
+          role: "ADMIN",
+          companyId: company.id,
+          status: "PENDING",
+        },
+        create: {
           email: adminEmail,
           name: adminName,
           role: "ADMIN",
@@ -93,9 +99,18 @@ export async function registerNewTenant(formData: FormData) {
         },
       });
 
-      // 4. Invitation logic
-      await (tx as any).companyInvitation.create({
-        data: {
+      // 4. Invitation logic (Changed to upsert to prevent unique constraint crash)
+      await (tx as any).companyInvitation.upsert({
+        where: {
+          email_companyId: {
+            email: adminEmail,
+            companyId: company.id,
+          },
+        },
+        update: {
+          status: "PENDING",
+        },
+        create: {
           companyId: company.id,
           email: adminEmail,
           name: adminName,
