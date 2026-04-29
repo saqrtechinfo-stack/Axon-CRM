@@ -1,55 +1,46 @@
-// app/pipeline/page.tsx
 import { prisma } from "@/lib/prisma";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { redirect } from "next/navigation";
+
+// 🔥 OPTIMIZATION: Cache for 30 seconds to save DB reads
+export const revalidate = 30;
 
 export default async function PipelinePage() {
   const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
 
-  if (!userId) {
-    return <div>Please log in to view the pipeline.</div>;
-  }
-
-  // Get the current user's company
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
-    include: { company: true },
+    select: { companyId: true, role: true },
   });
 
-  if (!dbUser) {
-    return <div>User not found. Please contact admin.</div>;
-  }
+  if (!dbUser) redirect("/sign-in");
 
-  // Get leads for this company
- const leads = await prisma.lead.findMany({
-   where: { companyId: dbUser.companyId },
-   include: {
-     status: true,
-     // CRITICAL: You must include activities and the user who did them!
-     activities: {
-       include: {
-         user: true,
-       },
-       orderBy: {
-         createdAt: "desc", // Shows newest updates at the top
-       },
-     },
-   },
- });
-  // Get the status columns for this company
-  const statusColumns = await prisma.leadStatus.findMany({
-    where: { companyId: dbUser.companyId },
-    orderBy: { order: "asc" },
-  });
+  // Fetch only what's needed for the card UI
+  const [leads, statusColumns] = await Promise.all([
+    prisma.lead.findMany({
+      where: { companyId: dbUser.companyId },
+      include: {
+        status: true,
+        assignedTo: { select: { name: true } },
+        // 🛑 Activity history removed here (fetched on-demand in Drawer)
+      },
+    }),
+    prisma.leadStatus.findMany({
+      where: { companyId: dbUser.companyId },
+      orderBy: { order: "asc" },
+    }),
+  ]);
 
   return (
     <div className="h-full flex flex-col space-y-6 p-4 md:p-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">
           Sales Pipeline
         </h1>
-        <p className="text-sm text-slate-500">
-          Drag and drop leads to update their status.
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          Al Saqr Tech Operational Flow
         </p>
       </div>
 

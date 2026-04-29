@@ -10,7 +10,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
-import { StatusChangeModal } from "../StatusChangeModal"; // Import the modal we built
+import { StatusChangeModal } from "../StatusChangeModal";
 import { useRouter } from "next/navigation";
 
 export function KanbanBoard({
@@ -23,13 +23,12 @@ export function KanbanBoard({
   const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [mounted, setMounted] = useState(false);
-
-  // NEW: State to track the move before it happens
   const [pendingMove, setPendingMove] = useState<{
     lead: any;
     status: any;
   } | null>(null);
 
+  // Sync state with server data when it changes (e.g., after router.refresh)
   useEffect(() => {
     setMounted(true);
     setLeads(initialLeads);
@@ -44,43 +43,48 @@ export function KanbanBoard({
     if (!over) return;
 
     const leadId = active.id as string;
-    let targetStatusId = over.id as string;
+    let targetId = over.id as string;
 
-    // Check if we dropped on a column or another card
-    const targetStatus = statusColumns.find((col) => col.id === targetStatusId);
+    // 1. Determine the actual target status ID
+    // (Could be dropping on a Column ID or another Card's ID)
+    const isColumn = statusColumns.some((col) => col.id === targetId);
+    const finalStatusId = isColumn
+      ? targetId
+      : leads.find((l) => l.id === targetId)?.statusId;
 
-    if (!targetStatus) {
-      const targetLead = leads.find((l) => l.id === targetStatusId);
-      if (targetLead) {
-        targetStatusId = targetLead.statusId;
-      } else {
-        return;
-      }
-    }
+    if (!finalStatusId) return;
 
     const activeLead = leads.find((l) => l.id === leadId);
-    if (!activeLead || activeLead.statusId === targetStatusId) return;
+    if (!activeLead || activeLead.statusId === finalStatusId) return;
 
-    // INTERCEPT: Instead of updating DB, open the modal
-    const finalStatus = statusColumns.find((s) => s.id === targetStatusId);
-    setPendingMove({ lead: activeLead, status: finalStatus });
+    // 🔥 OPTIMISTIC UPDATE: Move card visually before DB update
+    setLeads((prev) =>
+      prev.map((l) =>
+        l.id === leadId ? { ...l, statusId: finalStatusId } : l,
+      ),
+    );
+
+    // 2. Prepare the modal for confirmation/remarks
+    const targetStatus = statusColumns.find((s) => s.id === finalStatusId);
+    setPendingMove({ lead: activeLead, status: targetStatus });
   }
 
   if (!mounted)
     return (
-      <div className="flex gap-4 h-full min-h-[70vh]">Loading Board...</div>
+      <div className="p-8 font-bold animate-pulse">Initializing Board...</div>
     );
 
   return (
     <>
-      {/* THE INTERCEPTOR MODAL */}
       <StatusChangeModal
         isOpen={!!pendingMove}
         lead={pendingMove?.lead}
         targetStatus={pendingMove?.status}
         onClose={() => {
           setPendingMove(null);
-          router.refresh(); // This forces the cards to snap back if cancelled
+          // If they didn't finish the action, initialLeads will still have
+          // the old statusId, which will "snap" the card back via the useEffect above.
+          router.refresh();
         }}
       />
 
@@ -89,7 +93,7 @@ export function KanbanBoard({
         collisionDetection={closestCorners}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 h-full min-h-[70vh] items-start overflow-x-auto pb-4">
+        <div className="flex gap-6 h-full min-h-[75vh] items-start overflow-x-auto pb-8 px-2">
           {statusColumns.map((status) => (
             <KanbanColumn
               key={status.id}

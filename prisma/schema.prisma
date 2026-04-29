@@ -150,6 +150,7 @@ model Lead {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   statusId      String?
+  categoryId    String?
   designation   String?
   assignedToId  String?
   followUpNotes String?
@@ -161,11 +162,13 @@ model Lead {
   attachments   Attachment[]
   assignedTo    User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
   company       Company        @relation(fields: [companyId], references: [id])
+  category      Category?    @relation(fields: [categoryId], references: [id])
   owner         User?          @relation(fields: [ownerId], references: [id])
   status        LeadStatus?    @relation(fields: [statusId], references: [id])
   activities    LeadActivity[]
   quotations    Quotation[]
   products      Product[]      @relation("LeadProducts")
+ 
 
   @@index([companyId])
   @@index([statusId])
@@ -219,7 +222,7 @@ model Category {
   createdAt DateTime  @default(now())
   company   Company   @relation(fields: [companyId], references: [id])
   products  Product[]
-
+leads     Lead[]
   @@index([companyId])
 }
 

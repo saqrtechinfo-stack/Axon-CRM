@@ -44,7 +44,9 @@ export function RevenueChart({
             axisLine={false}
             tickLine={false}
             tick={{ fill: "#94a3b8", fontSize: 10 }}
-            tickFormatter={(value) => `$${value}`}
+            tickFormatter={(value) =>
+              value >= 1000 ? `$${(value / 1000).toFixed(1)}k` : `$${value}`
+            }
           />
           <Tooltip
             contentStyle={{

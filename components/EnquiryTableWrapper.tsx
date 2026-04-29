@@ -13,8 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {  Mail, Phone } from "lucide-react";
-import { Button } from "./ui/button";
+import { Mail, Phone } from "lucide-react";
 import { StatusChangeModal } from "./StatusChangeModal";
 
 export function EnquiryTableWrapper({
@@ -82,20 +81,21 @@ export function EnquiryTableWrapper({
               <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
                 Customer
               </TableHead>
-              {currentUserRole !== "SALES_EXECUTIVE" && (
-                <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                  Assignee
-                </TableHead>
-              )}
+              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+                Contact
+              </TableHead>
+
               <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
                 Status
               </TableHead>
               <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
                 Value
               </TableHead>
-              <TableHead className="font-bold text-slate-900 text-[11px] uppercase text-right p-4">
-                Actions
-              </TableHead>
+              {currentUserRole !== "SALES_EXECUTIVE" && (
+                <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+                  Assignee
+                </TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -154,22 +154,13 @@ export function EnquiryTableWrapper({
                   />
                 </TableCell>
 
-                <TableCell className="py-4 font-mono text-sm font-bold text-slate-700 text-right">
+                <TableCell className="py-4 font-mono text-sm font-bold text-slate-700 text-left">
                   <span className="text-[10px] text-slate-400 mr-1 italic">
                     AED
                   </span>
                   {lead.value.toLocaleString()}
                 </TableCell>
 
-                <TableCell className="py-4 text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity bg-blue-50 text-blue-600 font-bold text-[10px] uppercase"
-                  >
-                    Open Profile
-                  </Button>
-                </TableCell>
                 {currentUserRole !== "SALES_EXECUTIVE" && (
                   <TableCell className="py-4">
                     {lead.assignedTo ? (

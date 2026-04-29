@@ -5,6 +5,56 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
 
+// export async function createLead(formData: FormData) {
+//   const { userId } = await auth();
+//   if (!userId) return { success: false, error: "Unauthorized" };
+
+//   const dbUser = await prisma.user.findUnique({
+//     where: { clerkId: userId },
+//   });
+
+//   if (!dbUser) return { success: false, error: "Profile not found" };
+
+//   const name = formData.get("name") as string;
+//   const email = formData.get("email") as string;
+//   const phone = formData.get("phone") as string;
+//   const clientCompany = formData.get("company") as string;
+//   const designation = formData.get("designation") as string;
+//   const notes = formData.get("notes") as string;
+//   const value = parseFloat(formData.get("value") as string) || 0;
+
+//   // VISIBILITY FIX:
+//   // If the creator is not an Admin, assign the lead to them automatically.
+//   const assignedToId = dbUser.role === "SALES_EXECUTIVE" ? dbUser.id : null;
+
+//   const newStatus = await prisma.leadStatus.findFirst({
+//     where: { companyId: dbUser.companyId, label: "NEW" },
+//   });
+
+//   try {
+//     await prisma.lead.create({
+//       data: {
+//         name,
+//         email,
+//         phone: phone || null,
+//         clientCompany: clientCompany || null,
+//         designation: designation || null,
+//         notes: notes || null,
+//         value,
+//         statusId: newStatus?.id,
+//         companyId: dbUser.companyId,
+//         ownerId: dbUser.id,
+//         assignedToId: assignedToId, // CRITICAL: This ensures employees see their created leads
+//       },
+//     });
+
+//     revalidatePath("/enquiries");
+//     return { success: true };
+//   } catch (error) {
+//     console.error("Creation Error:", error);
+//     return { success: false, error: "Failed to create lead." };
+//   }
+// }
 export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -15,6 +65,11 @@ export async function createLead(formData: FormData) {
 
   if (!dbUser) return { success: false, error: "Profile not found" };
 
+  // New Fields
+  const categoryId = formData.get("categoryId") as string;
+  const productId = formData.get("productId") as string;
+  const manualAssignId = formData.get("assignedToId") as string;
+
   const name = formData.get("name") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
@@ -23,9 +78,11 @@ export async function createLead(formData: FormData) {
   const notes = formData.get("notes") as string;
   const value = parseFloat(formData.get("value") as string) || 0;
 
-  // VISIBILITY FIX:
-  // If the creator is not an Admin, assign the lead to them automatically.
-  const assignedToId = dbUser.role === "SALES_EXECUTIVE" ? dbUser.id : null;
+  // LOGIC: Use manual assignment if provided, otherwise auto-assign to Sales Exec
+  let finalAssignedId = manualAssignId || null;
+  if (!finalAssignedId && dbUser.role === "SALES_EXECUTIVE") {
+    finalAssignedId = dbUser.id;
+  }
 
   const newStatus = await prisma.leadStatus.findFirst({
     where: { companyId: dbUser.companyId, label: "NEW" },
@@ -44,18 +101,22 @@ export async function createLead(formData: FormData) {
         statusId: newStatus?.id,
         companyId: dbUser.companyId,
         ownerId: dbUser.id,
-        assignedToId: assignedToId, // CRITICAL: This ensures employees see their created leads
+        assignedToId: finalAssignedId,
+        // Link Product if selected (using the relation table in your schema)
+        ...(productId && {
+          products: {
+            connect: { id: productId },
+          },
+        }),
       },
     });
 
     revalidatePath("/enquiries");
     return { success: true };
   } catch (error) {
-    console.error("Creation Error:", error);
     return { success: false, error: "Failed to create lead." };
   }
 }
-
 export async function updateLeadDetails(id: string, data: any) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createLead } from "@/actions/lead-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,178 +12,244 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"; // Ensure you have this shadcn component
-import { PlusCircle, Loader2, Loader2Icon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PlusCircle, Loader2, UserPlus, Package, Layers } from "lucide-react";
 import { toast } from "sonner";
 
-export function CreateLeadModal() {
-  const [open, setOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false)
+interface CreateLeadModalProps {
+  categories: any[];
+  products: any[];
+  availableStaff: any[];
+}
 
-   async function handleSubmit(formData: FormData) {
-     if (isSubmitting) return; // Logic guard
-  
-     setIsSubmitting(true);
-     try {
-       const result = await createLead(formData);
-       if (result.success) {
-         setOpen(false);
-       } else {
-         toast.error(result.error);
-       }
-     } finally {
-      toast.success("New Lead Created")
-       setIsSubmitting(false);
-     }
-   }
+export function CreateLeadModal({
+  categories,
+  products,
+  availableStaff,
+}: CreateLeadModalProps) {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form State for custom selects
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [assignedToId, setAssignedToId] = useState<string>("");
+
+  // Filter products based on category
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategoryId) return [];
+    return products.filter((p) => p.categoryId === selectedCategoryId);
+  }, [selectedCategoryId, products]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+
+    // Manually add the values from our custom Select components
+    formData.append("categoryId", selectedCategoryId);
+    formData.append("productId", selectedProductId);
+    formData.append("assignedToId", assignedToId);
+
+    try {
+      const result = await createLead(formData);
+      if (result.success) {
+        setOpen(false);
+        toast.success("New Enquiry Registered");
+        // Reset states
+        setSelectedCategoryId("");
+        setSelectedProductId("");
+        setAssignedToId("");
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg transition-all active:scale-95">
+        <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg font-bold">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Enquiry
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] bg-white border-none shadow-2xl max-h-[90vh] overflow-y-auto">
+
+      <DialogContent className="sm:max-w-[550px] bg-white border-none shadow-2xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-black text-slate-900 italic tracking-tight">
-            NEW ENQUIRY
+          <DialogTitle className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase">
+            Create <span className="text-blue-600">New Lead</span>
           </DialogTitle>
         </DialogHeader>
-        {/* <form action={handleSubmit} className="space-y-4 pt-4"> */}
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            await handleSubmit(formData);
-          }}
-          className="space-y-4 pt-4"
-        >
+
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+          {/* Section 1: Classification (The Logic) */}
+          <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Layers className="h-3 w-3" /> Category
+                </Label>
+                <Select
+                  onValueChange={(val) => {
+                    setSelectedCategoryId(val);
+                    setSelectedProductId(""); // Reset product if category changes
+                  }}
+                >
+                  <SelectTrigger className="bg-white border-slate-200">
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Interest Product
+                </Label>
+                <Select
+                  disabled={!selectedCategoryId}
+                  value={selectedProductId}
+                  onValueChange={setSelectedProductId}
+                >
+                  <SelectTrigger className="bg-white border-slate-200">
+                    <SelectValue
+                      placeholder={
+                        selectedCategoryId
+                          ? "Select Product"
+                          : "Pick Category..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredProducts.map((prod) => (
+                      <SelectItem key={prod.id} value={prod.id}>
+                        {prod.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                <UserPlus className="h-3 w-3" /> Assign To (Optional)
+              </Label>
+              <Select onValueChange={setAssignedToId}>
+                <SelectTrigger className="bg-white border-slate-200">
+                  <SelectValue placeholder="Automatic Assignment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStaff.map((staff) => (
+                    <SelectItem key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Section 2: Client Info */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label
-                htmlFor="name"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Full Name
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">
+                Contact Name
               </Label>
               <Input
-                id="name"
                 name="name"
-                placeholder="Contact Person"
+                placeholder="John Doe"
                 required
-                className="bg-slate-50"
+                className="bg-slate-50 border-none"
               />
             </div>
-            <div className="grid gap-2">
-              <Label
-                htmlFor="designation"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Designation
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">
+                Company Name
               </Label>
               <Input
-                id="designation"
-                name="designation"
-                placeholder="e.g. Manager"
-                className="bg-slate-50"
+                name="company"
+                placeholder="Al Saqr Client Ltd"
+                className="bg-slate-50 border-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label
-                htmlFor="email"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Email
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">
+                Email Address
               </Label>
               <Input
-                id="email"
                 name="email"
                 type="email"
-                placeholder="email@company.com"
+                placeholder="client@example.com"
                 required
-                className="bg-slate-50"
+                className="bg-slate-50 border-none"
               />
             </div>
-            <div className="grid gap-2">
-              <Label
-                htmlFor="phone"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Phone
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">
+                Phone / WhatsApp
               </Label>
               <Input
-                id="phone"
                 name="phone"
-                type="tel"
                 placeholder="+971..."
-                className="bg-slate-50"
+                className="bg-slate-50 border-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label
-                htmlFor="company"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Client Company
-              </Label>
-              <Input
-                id="company"
-                name="company"
-                placeholder="Legal Entity Name"
-                className="bg-slate-50"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label
-                htmlFor="value"
-                className="text-[10px] font-bold uppercase text-slate-400"
-              >
-                Deal Value
-              </Label>
-              <Input
-                id="value"
-                name="value"
-                type="number"
-                placeholder="0.00"
-                className="bg-slate-50"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-slate-400">
+              Estimated Value (AED)
+            </Label>
+            <Input
+              name="value"
+              type="number"
+              placeholder="0.00"
+              className="bg-slate-50 border-none font-bold text-blue-600"
+            />
           </div>
 
-          <div className="grid gap-2">
-            <Label
-              htmlFor="notes"
-              className="text-[10px] font-bold uppercase text-slate-400"
-            >
-              Remarks / Requirements
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase text-slate-400">
+              Internal Remarks
             </Label>
             <Textarea
-              id="notes"
               name="notes"
-              placeholder="Enter specific lead details or project scope..."
-              className="bg-slate-50 min-h-[100px] resize-none"
+              placeholder="Requirement details..."
+              className="bg-slate-50 border-none min-h-[80px] resize-none"
             />
           </div>
 
           <Button
             disabled={isSubmitting}
             type="submit"
-            className="w-full bg-slate-900 hover:bg-black text-white font-bold h-12 mt-4 shadow-md"
+            className="w-full bg-slate-900 hover:bg-black text-white font-black h-14 shadow-xl rounded-2xl transition-all"
           >
             {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="animate-spin h-5 w-5" />
-                <span>Saving...</span>
-              </div>
+              <Loader2 className="animate-spin h-5 w-5" />
             ) : (
-              "Save Enquiry"
+              "REGISTER ENQUIRY"
             )}
           </Button>
         </form>

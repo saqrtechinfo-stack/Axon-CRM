@@ -21,7 +21,9 @@ import { LeadReadOnlyStats } from "./LeadReadOnlyStats";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
 import { assignLead } from "@/actions/lead-actions";
+import useSWR from "swr";
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export function LeadDetailsDrawer({
   lead,
   statusColumns, // Fallback to empty array to prevent .map() error
@@ -44,11 +46,19 @@ export function LeadDetailsDrawer({
   const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+  // 🔥 NEW: Fetch activities only when drawer is open
+  const {
+    data: activities,
+    isLoading,
+    mutate,
+  } = useSWR(isOpen ? `/api/leads/${lead.id}/activities` : null, fetcher);
+
   const handleAssign = async (employeeId: string) => {
     const res = await assignLead(lead.id, employeeId);
     if (res.success) {
       toast.success("Lead Assigned Successfully");
-      onUpdate(); // Refresh the drawer data
+      mutate(); // Refresh activities to show the assignment log
+      onUpdate();
     }
   };
 
@@ -238,46 +248,66 @@ export function LeadDetailsDrawer({
                   </Button>
                 </div>
 
-                <div className="relative space-y-6 before:absolute before:inset-0 before:ml-[11px] before:h-full before:w-0.5 before:bg-slate-100">
-                  {(lead.activities || []).map((activity: any) => (
-                    <div
-                      key={activity.id}
-                      className="relative flex items-start pl-8"
-                    >
-                      <div className="absolute left-0 mt-1 flex h-[24px] w-[24px] items-center justify-center rounded-full bg-white border-2 border-blue-500 shadow-sm z-10">
-                        {activity.type === "STATUS_CHANGE" ? (
-                          <RefreshCcw className="h-2.5 w-2.5 text-blue-500" />
-                        ) : (
-                          <MessageSquare className="h-2.5 w-2.5 text-emerald-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {format(
-                              new Date(activity.createdAt),
-                              "MMM d, HH:mm",
+                {/* Loading State Skeleton */}
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="h-20 bg-slate-50 animate-pulse rounded-xl"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="relative space-y-6 before:absolute before:inset-0 before:ml-[11px] before:h-full before:w-0.5 before:bg-slate-100">
+                    {(activities || []).length > 0 ? (
+                      (activities || []).map((activity: any) => (
+                        <div
+                          key={activity.id}
+                          className="relative flex items-start pl-8"
+                        >
+                          <div className="absolute left-0 mt-1 flex h-[24px] w-[24px] items-center justify-center rounded-full bg-white border-2 border-blue-500 shadow-sm z-10">
+                            {activity.type === "STATUS_CHANGE" ? (
+                              <RefreshCcw className="h-2.5 w-2.5 text-blue-500" />
+                            ) : (
+                              <MessageSquare className="h-2.5 w-2.5 text-emerald-500" />
                             )}
-                          </span>
-                          <div className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                            <User className="h-2 w-2 text-slate-400" />
-                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">
-                              {activity.user?.name || "System"}
-                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {format(
+                                  new Date(activity.createdAt),
+                                  "MMM d, HH:mm",
+                                )}
+                              </span>
+                              <div className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                                <User className="h-2 w-2 text-slate-400" />
+                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">
+                                  {activity.user?.name || "System"}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm font-bold text-slate-800">
+                              {activity.content}
+                            </p>
+                            {activity.remarks && (
+                              <div className="mt-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 italic text-xs text-blue-600">
+                                &quot;{activity.remarks}&quot;
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <p className="text-sm font-bold text-slate-800">
-                          {activity.content}
+                      ))
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                          No history recorded
                         </p>
-                        {activity.remarks && (
-                          <div className="mt-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 italic text-xs text-blue-600">
-                            &quot;{activity.remarks}&quot;
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -288,6 +318,7 @@ export function LeadDetailsDrawer({
           isOpen={isRemarkModalOpen}
           onClose={() => {
             setIsRemarkModalOpen(false);
+            mutate(); // 🔥 THIS REFRESHES THE ACTIVITY LOG IMMEDIATELY
             onUpdate();
           }}
         />
