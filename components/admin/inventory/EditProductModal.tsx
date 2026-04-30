@@ -114,24 +114,49 @@ export function EditProductModal({
                 <SelectTrigger className="rounded-xl border-slate-100 bg-slate-50 h-12 font-black italic uppercase text-[10px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-xl border-slate-100 shadow-xl">
                   <SelectItem
                     value="pcs"
                     className="text-[10px] font-bold uppercase"
                   >
                     Pieces (PCS)
                   </SelectItem>
+
                   <SelectItem
-                    value="hrs"
+                    value="Square Meters"
                     className="text-[10px] font-bold uppercase"
                   >
-                    Hours (HRS)
+                    Square Meters (SQM)
                   </SelectItem>
                   <SelectItem
                     value="ls"
                     className="text-[10px] font-bold uppercase"
                   >
                     Lumpsum (LS)
+                  </SelectItem>
+                  <SelectItem
+                    value="hour"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Hour
+                  </SelectItem>
+                  <SelectItem
+                    value="daily"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Daily
+                  </SelectItem>
+                  <SelectItem
+                    value="month"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Monthly (MONTH)
+                  </SelectItem>
+                  <SelectItem
+                    value="year"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Year
                   </SelectItem>
                 </SelectContent>
               </Select>

@@ -13,15 +13,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PlusCircle, Loader2, UserPlus, Package, Layers } from "lucide-react";
+  PlusCircle,
+  Loader2,
+  UserPlus,
+  Package,
+  Layers,
+  MapPin,
+  Building2,
+  User,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 interface CreateLeadModalProps {
   categories?: any[];
@@ -37,7 +42,6 @@ export function CreateLeadModal({
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Safe fallbacks (CRITICAL FIX)
   const safeCategories = categories ?? [];
   const safeProducts = products ?? [];
   const safeStaff = availableStaff ?? [];
@@ -60,7 +64,11 @@ export function CreateLeadModal({
 
     formData.append("categoryId", selectedCategoryId);
     formData.append("productId", selectedProductId);
-    formData.append("assignedToId", assignedToId);
+    // Handle the "none" selection for automatic assignment
+    formData.append(
+      "assignedToId",
+      assignedToId === "none" ? "" : assignedToId,
+    );
 
     try {
       const result = await createLead(formData);
@@ -68,7 +76,6 @@ export function CreateLeadModal({
       if (result.success) {
         setOpen(false);
         toast.success("New Enquiry Registered");
-
         setSelectedCategoryId("");
         setSelectedProductId("");
         setAssignedToId("");
@@ -89,7 +96,7 @@ export function CreateLeadModal({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[550px] bg-white border-none shadow-2xl max-h-[95vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] bg-white border-none shadow-2xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase">
             Create <span className="text-blue-600">New Lead</span>
@@ -97,10 +104,9 @@ export function CreateLeadModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          {/* Section 1 */}
+          {/* Section: Product Interest */}
           <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {/* Category */}
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Layers className="h-3 w-3" /> Category
@@ -111,26 +117,19 @@ export function CreateLeadModal({
                     setSelectedProductId("");
                   }}
                 >
-                  <SelectTrigger className="bg-white border-slate-200">
+                  <SelectTrigger className="bg-white border-slate-200 h-11">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {safeCategories.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-slate-400">
-                        No categories
-                      </div>
-                    ) : (
-                      safeCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    {safeCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Product */}
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Package className="h-3 w-3" /> Interest Product
@@ -140,7 +139,7 @@ export function CreateLeadModal({
                   value={selectedProductId}
                   onValueChange={setSelectedProductId}
                 >
-                  <SelectTrigger className="bg-white border-slate-200">
+                  <SelectTrigger className="bg-white border-slate-200 h-11">
                     <SelectValue
                       placeholder={
                         selectedCategoryId
@@ -150,78 +149,142 @@ export function CreateLeadModal({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredProducts.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-slate-400">
-                        No products
-                      </div>
-                    ) : (
-                      filteredProducts.map((prod) => (
-                        <SelectItem key={prod.id} value={prod.id}>
-                          {prod.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    {filteredProducts.map((prod) => (
+                      <SelectItem key={prod.id} value={prod.id}>
+                        {prod.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Assign */}
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                 <UserPlus className="h-3 w-3" /> Assign To (Optional)
               </Label>
-              <Select onValueChange={setAssignedToId}>
-                <SelectTrigger className="bg-white border-slate-200">
+              <Select value={assignedToId} onValueChange={setAssignedToId}>
+                <SelectTrigger className="bg-white border-slate-200 h-11">
                   <SelectValue placeholder="Automatic Assignment" />
                 </SelectTrigger>
                 <SelectContent>
-                  {safeStaff.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-slate-400">
-                      No staff available
-                    </div>
-                  ) : (
-                    safeStaff.map((staff) => (
-                      <SelectItem key={staff.id} value={staff.id}>
-                        {staff.name}
-                      </SelectItem>
-                    ))
-                  )}
+                  <SelectItem value="none" className="text-rose-500 font-bold">
+                    -- Clear Selection --
+                  </SelectItem>
+                  {safeStaff.map((staff) => (
+                    <SelectItem key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Client Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Contact Name
-              </Label>
-              <Input name="name" required className="bg-slate-50 border-none" />
+          {/* Section: Client & Contact Info */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Building2 className="h-3 w-3" /> Company Name
+                </Label>
+                <Input
+                  name="company"
+                  placeholder="e.g. Al Saqr Tech"
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <User className="h-3 w-3" /> Contact Person
+                </Label>
+                <Input
+                  name="name"
+                  required
+                  placeholder="Full Name"
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">
+                  Email Address
+                </Label>
+                <Input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="e.g. Client@email.com"
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">
+                  Phone Number
+                </Label>
+                <Input
+                  name="phone"
+                  placeholder="+971 ..."
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">
+                  designation
+                </Label>
+                <Input
+                  name="designation"
+                  type="text"
+                  required
+                  placeholder="e.g. Manager"
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Address Field */}
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">
-                Company Name
+              <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Business Address
               </Label>
-              <Input name="company" className="bg-slate-50 border-none" />
+              <Input
+                name="address"
+                placeholder="Office, Building, City"
+                className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">
+                  Estimated Deal Value
+                </Label>
+                <Input
+                  name="value"
+                  type="number"
+                  placeholder="0.00"
+                  className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400">
+                  Additional Notes
+                </Label>
+                <Textarea
+                  name="notes"
+                  placeholder="Any specific requirements..."
+                  className="bg-slate-50 border-none min-h-[44px] resize-none"
+                />
+              </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" required />
-            <Input name="phone" />
-          </div>
-
-          <Input name="value" type="number" placeholder="0.00" />
-
-          <Textarea name="notes" />
 
           <Button
             disabled={isSubmitting}
             type="submit"
-            className="w-full bg-slate-900 text-white h-14 rounded-2xl"
+            className="w-full bg-slate-900 text-white h-14 rounded-2xl font-bold tracking-tight hover:bg-slate-800 transition-all"
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin h-5 w-5" />

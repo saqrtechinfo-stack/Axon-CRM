@@ -22,67 +22,70 @@ export async function onboardEmployee(data: any) {
 
     if (!dbUser?.company) throw new Error("Company settings not found");
 
-  const result = await prisma.$transaction(
-    async (tx: Prisma.TransactionClient) => {
-      const generatedId = `${dbUser.company.empIdPrefix}${dbUser.company.nextEmpNumber}`;
+    
 
-      // 1. Create the Employee (HR Record)
-      const employee = await tx.employee.create({
-        data: {
-          employeeId: generatedId,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          designationId: data.designationId,
-          departmentId: data.departmentId,
-          role: data.role || "STAFF",
-          reportingToId: data.reportingToId || null,
-          companyId: dbUser.company.id,
-          status: "ACTIVE",
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const generatedId = `${dbUser.company.empIdPrefix}${dbUser.company.nextEmpNumber}`;
 
-      // 2. Create the User (Login/CRM Record)
-      // FIX: We need to find if the 'reportingToId' (Employee ID) has a corresponding User ID
-      let managerUserId = null;
-      if (data.reportingToId) {
-        const managerEmp = await tx.employee.findUnique({
-          where: { id: data.reportingToId },
-          select: { email: true },
+        // 1. Create the Employee (HR Record)
+        const employee = await tx.employee.create({
+          data: {
+            employeeId: generatedId,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+            designationId: data.designationId,
+            departmentId: data.departmentId,
+            role: data.role || "STAFF",
+            reportingToId: data.reportingToId || null,
+            companyId: dbUser.company.id,
+            imageUrl: data.imageUrl,
+            status: "ACTIVE",
+          },
         });
-        if (managerEmp) {
-          const managerUser = await tx.user.findUnique({
-            where: { email: managerEmp.email },
+
+        // 2. Create the User (Login/CRM Record)
+        // FIX: We need to find if the 'reportingToId' (Employee ID) has a corresponding User ID
+        let managerUserId = null;
+        if (data.reportingToId) {
+          const managerEmp = await tx.employee.findUnique({
+            where: { id: data.reportingToId },
+            select: { email: true },
           });
-          managerUserId = managerUser?.id;
+          if (managerEmp) {
+            const managerUser = await tx.user.findUnique({
+              where: { email: managerEmp.email },
+            });
+            managerUserId = managerUser?.id;
+          }
         }
-      }
 
-      await tx.user.create({
-        data: {
-          email: data.email.toLowerCase().trim(), // Normalize email
-          name: `${data.firstName} ${data.lastName}`,
-          companyId: dbUser.company.id,
-          // Ensure role matches your Prisma Enum exactly
-          role:
-            data.role === "SUPERVISOR" || data.role === "MANAGER"
-              ? "MANAGER"
-              : "SALES_EXECUTIVE",
-          managerId: managerUserId, // Links the hierarchy in the User table
-          status: "ACTIVE",
-        },
-      });
+        await tx.user.create({
+          data: {
+            email: data.email.toLowerCase().trim(), // Normalize email
+            name: `${data.firstName} ${data.lastName}`,
+            companyId: dbUser.company.id,
+            // Ensure role matches your Prisma Enum exactly
+            role:
+              data.role === "SUPERVISOR" || data.role === "MANAGER"
+                ? "MANAGER"
+                : "SALES_EXECUTIVE",
+            managerId: managerUserId, // Links the hierarchy in the User table
+            status: "ACTIVE",
+          },
+        });
 
-      // 3. Increment Company counter
-      await tx.company.update({
-        where: { id: dbUser.company.id },
-        data: { nextEmpNumber: { increment: 1 } },
-      });
+        // 3. Increment Company counter
+        await tx.company.update({
+          where: { id: dbUser.company.id },
+          data: { nextEmpNumber: { increment: 1 } },
+        });
 
-      return employee;
-    },
-  );
+        return employee;
+      },
+    );
 
     revalidatePath("/management/staff");
     return { success: true, data: result };

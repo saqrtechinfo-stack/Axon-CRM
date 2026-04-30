@@ -126,14 +126,9 @@ export function AddProductModal({ categories }: { categories: Category[] }) {
                   >
                     Pieces (PCS)
                   </SelectItem>
+
                   <SelectItem
-                    value="hrs"
-                    className="text-[10px] font-bold uppercase"
-                  >
-                    Hours (HRS)
-                  </SelectItem>
-                  <SelectItem
-                    value="sqm"
+                    value="Square Meters"
                     className="text-[10px] font-bold uppercase"
                   >
                     Square Meters (SQM)
@@ -145,10 +140,28 @@ export function AddProductModal({ categories }: { categories: Category[] }) {
                     Lumpsum (LS)
                   </SelectItem>
                   <SelectItem
-                    value="mo"
+                    value="hour"
                     className="text-[10px] font-bold uppercase"
                   >
-                    Monthly (MO)
+                    Hour
+                  </SelectItem>
+                  <SelectItem
+                    value="daily"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Daily 
+                  </SelectItem>
+                  <SelectItem
+                    value="month"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Monthly (MONTH)
+                  </SelectItem>
+                  <SelectItem
+                    value="year"
+                    className="text-[10px] font-bold uppercase"
+                  >
+                    Year
                   </SelectItem>
                 </SelectContent>
               </Select>

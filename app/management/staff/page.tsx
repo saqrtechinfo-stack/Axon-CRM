@@ -50,6 +50,7 @@ const [employees, departments, designations] = await Promise.all([
       ],
     },
     // OPTIMIZATION: Only fetch what the StaffCard needs
+    // OPTIMIZATION: Update this list to include the fields used in the Drawer
     select: {
       id: true,
       firstName: true,
@@ -59,11 +60,22 @@ const [employees, departments, designations] = await Promise.all([
       status: true,
       imageUrl: true,
       joiningDate: true,
+      // --- ADD THESE MISSING FIELDS ---
+      email: true,
+      phone: true,
+      emergencyName: true,
+      emergencyPhone: true,
+      bankName: true,
+      iban: true,
+      swiftCode: true,
+      fullAddress: true,
+      reportingToId: true,
+      // --------------------------------
       department: { select: { id: true, name: true } },
       designation: { select: { id: true, name: true, isManagement: true } },
       reportingTo: { select: { id: true, firstName: true, lastName: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   }),
   // For dropdowns, we only need ID and Name
   prisma.department.findMany({
@@ -125,7 +137,7 @@ const [employees, departments, designations] = await Promise.all([
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {employees.map((emp) => (
             <StaffCard
-              key={emp.id}
+              key={`${emp.id}-${emp.email}-${emp.imageUrl}`}
               emp={emp}
               departments={departments}
               designations={designations}

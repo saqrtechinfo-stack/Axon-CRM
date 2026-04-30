@@ -96,13 +96,13 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter italic">
-            Command Center
+            Dashboard
           </h1>
           {/* <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
             Al Saqr Tech Live Performance
           </p> */}
         </div>
-        <CreateLeadModal />
+        {/* <CreateLeadModal /> */}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -117,49 +117,57 @@ export function LeadDetailsDrawer({
 
               {/* NEW: STATUS TIMELINE STEPPER */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
-                    Pipeline Progress
-                  </h3>
-                </div>
-                <div className="relative flex justify-between px-2">
-                  <div className="absolute top-[15px] left-0 w-full h-[2px] bg-slate-100" />
-                  {statusColumns.map((status: any, idx: number) => {
-                    const isCompleted =
-                      statusColumns.findIndex(
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic mb-6">
+                  Pipeline Progress
+                </h3>
+
+                <div className="overflow-x-auto">
+                  <div className="relative flex items-center min-w-max px-2">
+                    <div className="absolute top-[15px] left-0 w-full h-[2px] bg-slate-100" />
+
+                    {statusColumns.map((status: any, idx: number) => {
+                      const currentIndex = statusColumns.findIndex(
                         (s: any) => s.id === lead.statusId,
-                      ) >= idx;
-                    const isCurrent = status.id === lead.statusId;
-                    return (
-                      <div
-                        key={status.id}
-                        className="relative z-10 flex flex-col items-center"
-                      >
+                      );
+                      const isCompleted = currentIndex >= idx;
+                      const isCurrent = status.id === lead.statusId;
+
+                      return (
                         <div
-                          className={`h-8 w-8 rounded-full flex items-center justify-center border-4 transition-all ${
-                            isCurrent
-                              ? "bg-blue-600 border-blue-100 scale-110"
-                              : isCompleted
-                                ? "bg-emerald-500 border-emerald-50"
-                                : "bg-white border-slate-100"
-                          }`}
+                          key={status.id}
+                          className="relative z-10 flex flex-col items-center mx-4 shrink-0"
                         >
-                          {isCompleted && !isCurrent ? (
-                            <Check className="h-3 w-3 text-white" />
-                          ) : (
-                            <div
-                              className={`h-1.5 w-1.5 rounded-full ${isCurrent ? "bg-white" : "bg-slate-200"}`}
-                            />
-                          )}
+                          <div
+                            className={`h-8 w-8 rounded-full flex items-center justify-center border-4 transition-all ${
+                              isCurrent
+                                ? "bg-blue-600 border-blue-100 scale-110"
+                                : isCompleted
+                                  ? "bg-emerald-500 border-emerald-50"
+                                  : "bg-white border-slate-100"
+                            }`}
+                          >
+                            {isCompleted && !isCurrent ? (
+                              <Check className="h-3 w-3 text-white" />
+                            ) : (
+                              <div
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  isCurrent ? "bg-white" : "bg-slate-200"
+                                }`}
+                              />
+                            )}
+                          </div>
+
+                          <span
+                            className={`mt-2 text-[10px] font-bold whitespace-nowrap ${
+                              isCurrent ? "text-blue-600" : "text-slate-400"
+                            }`}
+                          >
+                            {status.label}
+                          </span>
                         </div>
-                        <span
-                          className={`mt-3 text-[9px] font-black uppercase ${isCurrent ? "text-blue-600" : "text-slate-400"}`}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

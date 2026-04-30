@@ -22,13 +22,18 @@ export function ProductTable({
   // State for the Edit Modal
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.name.toLowerCase().includes(search.toLowerCase()),
-  );
+const filtered = products.filter((p) => {
+  const matchesSearch =
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.category.name.toLowerCase().includes(search.toLowerCase());
 
+  const matchesCategory =
+    selectedCategory === "all" || p.category.id === selectedCategory;
+
+  return matchesSearch && matchesCategory;
+});
   const handleDelete = async (id: string) => {
     if (
       confirm("Are you sure? This will remove the product from the catalog.")
@@ -50,23 +55,74 @@ export function ProductTable({
   return (
     <div className="space-y-6">
       {/* Search & Filter Header */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products or categories..."
-            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-none rounded-2xl text-xs font-bold focus:ring-2 ring-blue-500 outline-none transition-all"
-          />
+      <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+        {/* Top Row */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+          {/* Search */}
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-none rounded-2xl text-xs font-bold focus:ring-2 ring-blue-500 outline-none transition-all"
+            />
+          </div>
+
+          {/* Count + Clear */}
+          <div className="flex items-center gap-2">
+            <Badge className="rounded-xl bg-slate-100 text-slate-500 font-bold text-[9px] px-3">
+              {filtered.length} Results
+            </Badge>
+
+            {(selectedCategory !== "all" || search) && (
+              <button
+                onClick={() => {
+                  setSelectedCategory("all");
+                  setSearch("");
+                }}
+                className="text-[10px] font-bold text-blue-600 hover:underline"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Badge
-            variant="outline"
-            className="rounded-lg border-slate-100 text-slate-400 font-bold uppercase text-[9px] px-3"
+
+        {/* Category Chips */}
+        <div className="flex flex-wrap gap-2">
+          {/* ALL CHIP */}
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300
+        ${
+          selectedCategory === "all"
+            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105"
+            : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+        }`}
           >
-            {filtered.length} Items Found
-          </Badge>
+            All
+          </button>
+
+          {/* CATEGORY CHIPS */}
+          {categories.map((cat) => {
+            const active = selectedCategory === cat.id;
+
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300
+            ${
+              active
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:scale-[1.03]"
+            }`}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -123,7 +179,8 @@ export function ProductTable({
                     </span>
                     {product.price.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
-                    })}
+                    })}{" "}
+                    {/* <span className="text-[1rem]">+ 5% VAT</span> */}
                   </p>
                 </div>
                 <div className="bg-slate-950 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest italic shadow-lg shadow-slate-900/20">
@@ -153,7 +210,6 @@ export function ProductTable({
           categories={categories}
           open={isEditOpen}
           onOpenChange={setIsEditOpen}
-          
         />
       )}
     </div>

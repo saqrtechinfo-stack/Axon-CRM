@@ -13,7 +13,7 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Primary Info Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
           <div className="flex items-center gap-2 mb-2 text-blue-600">
             <Mail className="h-3 w-3" />

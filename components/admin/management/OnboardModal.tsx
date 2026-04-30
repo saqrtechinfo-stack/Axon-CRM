@@ -36,6 +36,7 @@ import {
   CheckCircle2,
   HeartPulse,
   Landmark,
+  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { onboardEmployee } from "@/actions/employee-actions";
@@ -178,6 +179,18 @@ export function OnboardModal({
                     </span>
                   </div>
                 )}
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg hover:bg-rose-600 z-50"
+                  >
+                    <Trash2Icon className="h-3 w-3" />
+                  </button>
+                )}
               </div>
               <input
                 type="file"
@@ -230,7 +243,7 @@ export function OnboardModal({
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400 italic tracking-widest">
-                  Official Email
+                   Email
                 </label>
                 <Input
                   name="email"
@@ -283,7 +296,7 @@ export function OnboardModal({
             </div>
             <div className="space-y-5">
               <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.4em] flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-rose-500" /> Physical Address
+                <MapPin className="h-4 w-4 text-rose-500" /> Address
               </h3>
               <textarea
                 name="fullAddress"
@@ -391,7 +404,11 @@ export function OnboardModal({
                 <SelectTrigger className="rounded-xl border-slate-100 bg-slate-50 h-11 font-bold text-xs">
                   <SelectValue placeholder="No Manager Assigned" />
                 </SelectTrigger>
+
                 <SelectContent>
+                  <SelectItem value="NONE" className="text-rose-500 font-bold">
+                    -- No Manager --
+                  </SelectItem>
                   {managers?.map((m: any) => (
                     <SelectItem
                       key={m.id}
