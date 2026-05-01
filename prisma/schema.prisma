@@ -7,38 +7,31 @@ datasource db {
 }
 
 model Company {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  domain String? @unique // Added @unique to prevent domain collisions
-  logo   String?
-  plan   String  @default("BASIC")
-
-  // --- NEW FIELDS FOR MODULE 1 ---
-  contactEmail String? // Official billing/admin email
-  contactPhone String? // For your sales team to call
-  address      String? // Physical location in UAE
-
-  trialEndsAt     DateTime? // For auto-disabling trials
-  subscriptionEnd DateTime? // For auto-disabling paid plans
-  // -------------------------------
-
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  status        CompanyStatus @default(ACTIVE)
-  empIdPrefix   String        @default("EMP-")
-  nextEmpNumber Int           @default(1001)
-
-  // Relations (Keep these as they are)
-  categories   Category[]
-  invitations  CompanyInvitation[]
-  departments  Department[]
-  designations Designation[]
-  employees    Employee[]
-  leads        Lead[]
-  statuses     LeadStatus[]
-  products     Product[]
-  quotations   Quotation[]
-  users        User[]
+  id              String              @id @default(cuid())
+  name            String              @unique
+  domain          String?             @unique
+  logo            String?
+  plan            String              @default("BASIC")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  status          CompanyStatus       @default(ACTIVE)
+  empIdPrefix     String              @default("EMP-")
+  nextEmpNumber   Int                 @default(1001)
+  address         String?
+  contactEmail    String?
+  contactPhone    String?
+  subscriptionEnd DateTime?
+  trialEndsAt     DateTime?
+  categories      Category[]
+  invitations     CompanyInvitation[]
+  departments     Department[]
+  designations    Designation[]
+  employees       Employee[]
+  leads           Lead[]
+  statuses        LeadStatus[]
+  products        Product[]
+  quotations      Quotation[]
+  users           User[]
 }
 
 model User {
@@ -150,7 +143,6 @@ model Lead {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   statusId      String?
-  categoryId    String?
   designation   String?
   assignedToId  String?
   followUpNotes String?
@@ -159,10 +151,12 @@ model Lead {
   brand         String?
   location      String?
   source        String?
+  categoryId    String?
+  startDate     DateTime       @default(now())
   attachments   Attachment[]
   assignedTo    User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
-  company       Company        @relation(fields: [companyId], references: [id])
   category      Category?      @relation(fields: [categoryId], references: [id])
+  company       Company        @relation(fields: [companyId], references: [id])
   owner         User?          @relation(fields: [ownerId], references: [id])
   status        LeadStatus?    @relation(fields: [statusId], references: [id])
   activities    LeadActivity[]
@@ -216,16 +210,15 @@ model CompanyInvitation {
 
 model Category {
   id        String    @id @default(cuid())
-  name      String    
+  name      String
   companyId String
   createdAt DateTime  @default(now())
   company   Company   @relation(fields: [companyId], references: [id])
-  products  Product[]
   leads     Lead[]
+  products  Product[]
 
+  @@unique([name, companyId])
   @@index([companyId])
-  @@unique([name, companyId]) 
-
 }
 
 model Product {

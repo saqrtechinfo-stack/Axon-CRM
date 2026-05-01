@@ -76,28 +76,56 @@ export function LeadDetailsDrawer({
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
                   Lead Profile
                 </span>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white font-bold uppercase text-[10px] "
+                >
+                  {isEditing ? (
+                    <>
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 className="h-3 w-3 mr-1" /> Edit Details
+                    </>
+                  )}
+                </Button>
               </div>
               <SheetTitle className="text-3xl font-black italic tracking-tighter text-white uppercase leading-none">
                 {lead.name}
               </SheetTitle>
-            </div>
+              <div className="flex flex-wrap gap-3 mt-3">
+                {/* Start Date Badge */}
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full">
+                  <History className="h-3 w-3 text-blue-200" />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[8px] font-black uppercase opacity-60">
+                      Created On
+                    </span>
+                    <span className="text-[11px] font-bold mt-[1px]">
+                      {lead.startDate
+                        ? format(new Date(lead.startDate), "dd MMM yyyy")
+                        : format(new Date(lead.createdAt), "dd MMM yyyy")}
+                    </span>
+                  </div>
+                </div>
 
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white font-bold uppercase text-[10px]"
-            >
-              {isEditing ? (
-                <>
-                  <X className="h-3 w-3 mr-1" /> Cancel
-                </>
-              ) : (
-                <>
-                  <Edit3 className="h-3 w-3 mr-1" /> Edit Details
-                </>
-              )}
-            </Button>
+                {/* Owner/Creator Badge */}
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full">
+                  <UserCircle2 className="h-3 w-3 text-blue-200" />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[8px] font-black uppercase opacity-60">
+                      Lead Owner
+                    </span>
+                    <span className="text-[11px] font-bold mt-[1px]">
+                      {lead.owner?.name || "System"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

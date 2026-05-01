@@ -2,7 +2,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { RevenueChart } from "@/components/analytics/RevenueChart";
-import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
 
 // 🔥 OPTIMIZATION 1: Cache this page for 60 seconds.

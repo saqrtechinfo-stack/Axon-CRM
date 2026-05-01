@@ -54,6 +54,7 @@ export default async function EnquiriesPage() {
         include: {
           status: true,
           assignedTo: { select: { name: true, role: true } },
+          owner: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 50,

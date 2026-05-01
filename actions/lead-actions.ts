@@ -59,26 +59,39 @@ export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
 
+  // Helper to find keys that might be prefixed (like "1_name" or "name")
+  const getVal = (key: string) => {
+    const entry = Array.from(formData.entries()).find(
+      ([k]) => k.endsWith(`_${key}`) || k === key,
+    );
+    return entry ? (entry[1] as string) : "";
+  };
+
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
   });
 
   if (!dbUser) return { success: false, error: "Profile not found" };
 
-  // New Fields
-  const categoryId = formData.get("categoryId") as string;
-  const productId = formData.get("productId") as string;
-  const manualAssignId = formData.get("assignedToId") as string;
+  // Extract using the helper
+  const rawDate = getVal("startDate");
+  const categoryId = getVal("categoryId");
+  const productId = getVal("productId");
+  const manualAssignId = getVal("assignedToId");
+  const name = getVal("name");
+  const email = getVal("email");
+  const phone = getVal("phone");
+  const clientCompany = getVal("company");
+  const designation = getVal("designation");
+  const notes = getVal("notes");
+  const value = parseFloat(getVal("value")) || 0;
 
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const phone = formData.get("phone") as string;
-  const clientCompany = formData.get("company") as string;
-  const designation = formData.get("designation") as string;
-  const notes = formData.get("notes") as string;
-  const value = parseFloat(formData.get("value") as string) || 0;
+  // Logic check for mandatory fields
+  if (!name || !email) {
+    return { success: false, error: "Name and Email are required." };
+  }
 
-  // LOGIC: Use manual assignment if provided, otherwise auto-assign to Sales Exec
+  // LOGIC: Use manual assignment if provided, otherwise auto-assign if Sales Exec
   let finalAssignedId = manualAssignId || null;
   if (!finalAssignedId && dbUser.role === "SALES_EXECUTIVE") {
     finalAssignedId = dbUser.id;
@@ -102,7 +115,7 @@ export async function createLead(formData: FormData) {
         companyId: dbUser.companyId,
         ownerId: dbUser.id,
         assignedToId: finalAssignedId,
-        // Link Product if selected (using the relation table in your schema)
+        startDate: rawDate ? new Date(rawDate) : new Date(),
         ...(productId && {
           products: {
             connect: { id: productId },
@@ -114,9 +127,18 @@ export async function createLead(formData: FormData) {
     revalidatePath("/enquiries");
     return { success: true };
   } catch (error) {
-    return { success: false, error: "Failed to create lead." };
+    // This will print the exact field that failed in your terminal
+    console.error("DEBUGGING PRISMA ERROR:", error);
+
+    // Return the actual error to the UI temporarily to diagnose
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Database error",
+    };
   }
 }
+
+
 export async function updateLeadDetails(id: string, data: any) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };

@@ -24,6 +24,7 @@ import {
   Building2,
   User,
   X,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -106,7 +107,7 @@ export function CreateLeadModal({
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           {/* Section: Product Interest */}
           <div className="p-4 bg-slate-50 rounded-3xl border border-slate-100 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1  gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Layers className="h-3 w-3" /> Category
@@ -117,7 +118,7 @@ export function CreateLeadModal({
                     setSelectedProductId("");
                   }}
                 >
-                  <SelectTrigger className="bg-white border-slate-200 h-11">
+                  <SelectTrigger className="bg-white border-slate-200 w-full h-11">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -129,7 +130,6 @@ export function CreateLeadModal({
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Package className="h-3 w-3" /> Interest Product
@@ -139,7 +139,7 @@ export function CreateLeadModal({
                   value={selectedProductId}
                   onValueChange={setSelectedProductId}
                 >
-                  <SelectTrigger className="bg-white border-slate-200 h-11">
+                  <SelectTrigger className="bg-white border-slate-200  w-full  h-11">
                     <SelectValue
                       placeholder={
                         selectedCategoryId
@@ -157,9 +157,43 @@ export function CreateLeadModal({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <UserPlus className="h-3 w-3" /> Assign To (Optional)
+                </Label>
+                <Select value={assignedToId} onValueChange={setAssignedToId}>
+                  <SelectTrigger className="bg-white border-slate-200 h-11  w-full ">
+                    <SelectValue placeholder="Automatic Assignment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      value="none"
+                      className="text-rose-500 font-bold"
+                    >
+                      -- Clear Selection --
+                    </SelectItem>
+                    {safeStaff.map((staff) => (
+                      <SelectItem key={staff.id} value={staff.id}>
+                        {staff.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Lead Started Date
+                </Label>
+                <Input
+                  name="startDate"
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                  className="bg-white border h-11"
+                />
+              </div> */}
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                 <UserPlus className="h-3 w-3" /> Assign To (Optional)
               </Label>
@@ -178,7 +212,7 @@ export function CreateLeadModal({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </div>
 
           {/* Section: Client & Contact Info */}
@@ -230,6 +264,7 @@ export function CreateLeadModal({
                   className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
                 />
               </div>
+
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">
                   designation
@@ -240,6 +275,18 @@ export function CreateLeadModal({
                   required
                   placeholder="e.g. Manager"
                   className="bg-slate-50 border-none h-11 placeholder:text-slate-500 placeholder:opacity-60"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Lead Started Date
+                </Label>
+                <Input
+                  name="startDate"
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                  className="bg-white border h-11"
                 />
               </div>
             </div>
