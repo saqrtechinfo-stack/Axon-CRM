@@ -5,162 +5,148 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
 
-// export async function createLead(formData: FormData) {
-//   const { userId } = await auth();
-//   if (!userId) return { success: false, error: "Unauthorized" };
-
-//   const dbUser = await prisma.user.findUnique({
-//     where: { clerkId: userId },
-//   });
-
-//   if (!dbUser) return { success: false, error: "Profile not found" };
-
-//   const name = formData.get("name") as string;
-//   const email = formData.get("email") as string;
-//   const phone = formData.get("phone") as string;
-//   const clientCompany = formData.get("company") as string;
-//   const designation = formData.get("designation") as string;
-//   const notes = formData.get("notes") as string;
-//   const value = parseFloat(formData.get("value") as string) || 0;
-
-//   // VISIBILITY FIX:
-//   // If the creator is not an Admin, assign the lead to them automatically.
-//   const assignedToId = dbUser.role === "SALES_EXECUTIVE" ? dbUser.id : null;
-
-//   const newStatus = await prisma.leadStatus.findFirst({
-//     where: { companyId: dbUser.companyId, label: "NEW" },
-//   });
-
-//   try {
-//     await prisma.lead.create({
-//       data: {
-//         name,
-//         email,
-//         phone: phone || null,
-//         clientCompany: clientCompany || null,
-//         designation: designation || null,
-//         notes: notes || null,
-//         value,
-//         statusId: newStatus?.id,
-//         companyId: dbUser.companyId,
-//         ownerId: dbUser.id,
-//         assignedToId: assignedToId, // CRITICAL: This ensures employees see their created leads
-//       },
-//     });
-
-//     revalidatePath("/enquiries");
-//     return { success: true };
-//   } catch (error) {
-//     console.error("Creation Error:", error);
-//     return { success: false, error: "Failed to create lead." };
-//   }
-// }
 export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
 
-  // Helper to find keys that might be prefixed (like "1_name" or "name")
-  const getVal = (key: string) => {
-    const entry = Array.from(formData.entries()).find(
-      ([k]) => k.endsWith(`_${key}`) || k === key,
-    );
-    return entry ? (entry[1] as string) : "";
-  };
-
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
-  });
-
+  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (!dbUser) return { success: false, error: "Profile not found" };
 
-  // Extract using the helper
-  const rawDate = getVal("startDate");
-  const categoryId = getVal("categoryId");
-  const productId = getVal("productId");
-  const manualAssignId = getVal("assignedToId");
-  const name = getVal("name");
-  const email = getVal("email");
-  const phone = getVal("phone");
-  const clientCompany = getVal("company");
-  const designation = getVal("designation");
-  const notes = getVal("notes");
-  const value = parseFloat(getVal("value")) || 0;
+  // 1. Extract the new fields
+  const isEnquiry = formData.get("isEnquiry") === "true";
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
+  const phone = formData.get("phone") as string;
+  const clientCompany = formData.get("clientCompany") as string;
+  const natureOfBusiness = formData.get("natureOfBusiness") as string;
+  const designation = formData.get("designation") as string;
+  const source = formData.get("source") as string;
+  const notes = formData.get("notes") as string;
+  const value = parseFloat(formData.get("value") as string) || 0;
+  const assignedToId = formData.get("assignedToId") as string;
 
-  // Logic check for mandatory fields
-  if (!name || !email) {
+  // FIX: Parse the multi-product JSON string
+  const productIdsRaw = formData.get("productIds") as string;
+  const productIds: string[] = JSON.parse(productIdsRaw || "[]");
+
+  if (!name || !email)
     return { success: false, error: "Name and Email are required." };
-  }
 
-  // LOGIC: Use manual assignment if provided, otherwise auto-assign if Sales Exec
-  let finalAssignedId = manualAssignId || null;
+  // 2. Resolve Assignment (Keep current logic)
+  let finalAssignedId = assignedToId === "none" ? null : assignedToId;
   if (!finalAssignedId && dbUser.role === "SALES_EXECUTIVE") {
     finalAssignedId = dbUser.id;
   }
 
-  const newStatus = await prisma.leadStatus.findFirst({
-    where: { companyId: dbUser.companyId, label: "NEW" },
-  });
+  // 3. Status Logic (Keep current logic)
+  let statusId = null;
+  if (!isEnquiry) {
+    const newStatus = await prisma.leadStatus.findFirst({
+      where: { companyId: dbUser.companyId, label: "NEW" },
+    });
+    statusId = newStatus?.id;
+  }
 
   try {
     await prisma.lead.create({
       data: {
+        isEnquiry,
         name,
         email,
-        phone: phone || null,
-        clientCompany: clientCompany || null,
-        designation: designation || null,
-        notes: notes || null,
+        phone,
+        clientCompany,
+        natureOfBusiness,
+        designation,
+        source,
+        notes,
         value,
-        statusId: newStatus?.id,
+        statusId,
         companyId: dbUser.companyId,
         ownerId: dbUser.id,
         assignedToId: finalAssignedId,
-        startDate: rawDate ? new Date(rawDate) : new Date(),
-        ...(productId && {
-          products: {
-            connect: { id: productId },
-          },
-        }),
+        startDate: new Date(),
+        // FIX: Connect multiple products using the parsed array
+        ...(productIds.length > 0 &&
+          !isEnquiry && {
+            products: {
+              connect: productIds.map((id) => ({ id })),
+            },
+          }),
       },
     });
 
     revalidatePath("/enquiries");
     return { success: true };
   } catch (error) {
-    // This will print the exact field that failed in your terminal
-    console.error("DEBUGGING PRISMA ERROR:", error);
-
-    // Return the actual error to the UI temporarily to diagnose
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Database error",
-    };
+    console.error("PRISMA ERROR:", error);
+    return { success: false, error: "Failed to save entry." };
   }
 }
 
 
-export async function updateLeadDetails(id: string, data: any) {
+export async function convertEnquiryToLead(leadId: string) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+
+    // Get the default "NEW" status for leads
+    const initialStatus = await prisma.leadStatus.findFirst({
+      where: { companyId: dbUser?.companyId, label: "NEW" },
+    });
+
     await prisma.lead.update({
-      where: { id },
+      where: { id: leadId },
       data: {
-        name: data.name || undefined,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        clientCompany: data.company || undefined,
-        designation: data.designation || undefined,
-        value: parseFloat(data.value) || undefined,
+        isEnquiry: false,
+        statusId: initialStatus?.id,
+        // Log the activity
+        activities: {
+          create: {
+            type: "STATUS_CHANGE",
+            content: "Converted Enquiry to Sales Lead",
+            userId: dbUser?.id as string,
+          },
+        },
       },
     });
 
     revalidatePath("/enquiries");
     return { success: true };
   } catch (error) {
-    console.error("Update Error:", error);
-    return { success: false };
+    return { success: false, error: "Conversion failed" };
+  }
+}
+
+
+// lead-actions.ts
+export async function updateLeadDetails(leadId: string, data: any) {
+  try {
+    // Parse the product IDs from the stringified array
+    const productIds = data.productIds ? JSON.parse(data.productIds) : [];
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        designation: data.designation,
+        clientCompany: data.clientCompany,
+        value: parseFloat(data.value) || 0,
+        assignedToId: data.assignedToId || null,
+        // Use 'set' to replace old products with the new list
+        products: {
+          set: productIds.map((id: string) => ({ id })),
+        },
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "Failed to update lead" };
   }
 }
 

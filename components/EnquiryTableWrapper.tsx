@@ -13,7 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Mail, Phone } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Phone, Inbox, Target, User2 } from "lucide-react";
 import { StatusChangeModal } from "./StatusChangeModal";
 
 export function EnquiryTableWrapper({
@@ -21,11 +22,15 @@ export function EnquiryTableWrapper({
   statusColumns,
   currentUserRole,
   availableStaff,
+  categories, // Accept this
+  products,
 }: {
   initialLeads: any[];
   statusColumns: any[];
   availableStaff: any[];
   currentUserRole: string;
+  categories:any[];
+  products:any[];
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -34,17 +39,18 @@ export function EnquiryTableWrapper({
     status: any;
   } | null>(null);
   const router = useRouter();
-  // Inside EnquiryTableWrapper.tsx
+
   useEffect(() => {
     if (selectedLead) {
-      // Find the updated version of the currently selected lead from the new props
       const updatedLead = initialLeads.find((l) => l.id === selectedLead.id);
       if (updatedLead) {
         setSelectedLead(updatedLead);
       }
     }
-  }, [initialLeads]); // This fires every time router.refresh() gets new data
-  const filteredLeads = initialLeads.filter((lead) => {
+  }, [initialLeads]);
+
+  // 1. Filter by search term first
+  const searchedLeads = initialLeads.filter((lead) => {
     const searchStr = searchTerm.toLowerCase();
     return (
       lead.name.toLowerCase().includes(searchStr) ||
@@ -54,52 +60,46 @@ export function EnquiryTableWrapper({
     );
   });
 
-  return (
-    <>
-      <EnquiryFilters onSearch={setSearchTerm} total={filteredLeads.length} />
+  // 2. Split into Enquiries and Leads based on schema boolean
+  const enquiries = searchedLeads.filter((l) => l.isEnquiry);
+  const activeLeads = searchedLeads.filter((l) => !l.isEnquiry);
 
-      {/* Global Drawer - only renders when a lead is selected */}
-      {selectedLead && (
-        <LeadDetailsDrawer
-          currentUserRole={currentUserRole}
-          availableStaff={availableStaff}
-          statusColumns={statusColumns}
-          lead={selectedLead}
-          isOpen={!!selectedLead}
-          onClose={() => {
-            setSelectedLead(null);
-            router.refresh(); // REFRESH WHEN CLOSED TO SYNC TABLE
-          }}
-          onUpdate={() => router.refresh()}
-        />
-      )}
-
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader className="bg-slate-50/50">
-            <TableRow className="hover:bg-transparent">
+  const LeadTable = ({ data }: { data: any[] }) => (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <Table>
+        <TableHeader className="bg-slate-50/50">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Customer
+            </TableHead>
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Contact
+            </TableHead>
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Status
+            </TableHead>
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Value
+            </TableHead>
+            {currentUserRole !== "SALES_EXECUTIVE" && (
               <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                Customer
+                Assignee
               </TableHead>
-              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                Contact
-              </TableHead>
-
-              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                Status
-              </TableHead>
-              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                Value
-              </TableHead>
-              {currentUserRole !== "SALES_EXECUTIVE" && (
-                <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                  Assignee
-                </TableHead>
-              )}
+            )}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={5}
+                className="h-32 text-center text-slate-400 text-sm italic"
+              >
+                No records found.
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredLeads.map((lead) => (
+          ) : (
+            data.map((lead) => (
               <TableRow
                 key={lead.id}
                 onClick={() => setSelectedLead(lead)}
@@ -108,22 +108,25 @@ export function EnquiryTableWrapper({
                 <TableCell className="py-4">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                      {lead.name.charAt(0)}
+                      {lead.clientCompany.charAt(0)}
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {lead.name}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-medium uppercase tracking-tighter">
+                        {" "}
                         {lead.clientCompany || "No Company"}
                       </span>
+                      {/* <span className="text-[11px] text-slate-400 font-medium uppercase tracking-tighter">
+                        {lead.name}
+                      </span> */}
                     </div>
                   </div>
                 </TableCell>
-
-                {/* New Contact Column to highlight missing data */}
                 <TableCell className="py-4">
                   <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <User2 className="h-3 w-3 opacity-50" />
+                      <span className="text-xs font-medium">{lead.name}</span>
+                    </div>
                     <div className="flex items-center gap-1.5 text-slate-600">
                       <Mail className="h-3 w-3 opacity-50" />
                       <span className="text-xs font-medium">{lead.email}</span>
@@ -138,7 +141,6 @@ export function EnquiryTableWrapper({
                     </div>
                   </div>
                 </TableCell>
-
                 <TableCell className="py-4">
                   <StatusBadge
                     id={lead.id}
@@ -148,19 +150,16 @@ export function EnquiryTableWrapper({
                       const targetStatus = statusColumns.find(
                         (s: any) => s.id === statusId,
                       );
-                      // TRIGGER THE MODAL STATE
                       setPendingMove({ lead, status: targetStatus });
                     }}
                   />
                 </TableCell>
-
                 <TableCell className="py-4 font-mono text-sm font-bold text-slate-700 text-left">
                   <span className="text-[10px] text-slate-400 mr-1 italic">
                     AED
                   </span>
                   {lead.value.toLocaleString()}
                 </TableCell>
-
                 {currentUserRole !== "SALES_EXECUTIVE" && (
                   <TableCell className="py-4">
                     {lead.assignedTo ? (
@@ -180,19 +179,81 @@ export function EnquiryTableWrapper({
                   </TableCell>
                 )}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <EnquiryFilters onSearch={setSearchTerm} total={searchedLeads.length} />
+
+        <Tabs defaultValue="enquiries" className="w-full">
+          <TabsList className="grid w-[400px] grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
+            <TabsTrigger
+              value="enquiries"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
+            >
+              <Inbox className="h-4 w-4" />
+              <span className="font-bold text-xs uppercase tracking-tight">
+                Enquiries
+              </span>
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
+                {enquiries.length}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="leads"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
+            >
+              <Target className="h-4 w-4" />
+              <span className="font-bold text-xs uppercase tracking-tight">
+                Active Leads
+              </span>
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
+                {activeLeads.length}
+              </span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="enquiries" className="mt-6 focus-visible:ring-0">
+            <LeadTable data={enquiries} />
+          </TabsContent>
+          <TabsContent value="leads" className="mt-6 focus-visible:ring-0">
+            <LeadTable data={activeLeads} />
+          </TabsContent>
+        </Tabs>
       </div>
+
+      {selectedLead && (
+        <LeadDetailsDrawer
+          currentUserRole={currentUserRole}
+          availableStaff={availableStaff}
+          statusColumns={statusColumns}
+          categories={categories} // Pass this
+          products={products}
+          lead={selectedLead}
+          isOpen={!!selectedLead}
+          onClose={() => {
+            setSelectedLead(null);
+            router.refresh();
+          }}
+          onUpdate={() => router.refresh()}
+        />
+      )}
+
       <StatusChangeModal
         isOpen={!!pendingMove}
         lead={pendingMove?.lead}
         targetStatus={pendingMove?.status}
         onClose={() => {
           setPendingMove(null);
-          router.refresh(); // Ensure table stays synced
+          router.refresh();
         }}
       />
-    </>
+    </div>
   );
 }

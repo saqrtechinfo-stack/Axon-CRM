@@ -42,30 +42,45 @@ export default async function EnquiriesPage() {
         where: { companyId: dbUser.companyId },
         select: { id: true, name: true, categoryId: true },
       }),
+      // Section 1: Staff Fetching
       prisma.user.findMany({
         where:
           dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN"
             ? { companyId: dbUser.companyId }
             : { OR: [{ id: dbUser.id }, { managerId: dbUser.id }] },
-        select: { id: true, name: true, role: true },
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          imageUrl: true, // Changed from 'image' to 'imageUrl'
+        },
       }),
+
+      // Section 2: Lead Fetching
       prisma.lead.findMany({
         where: whereClause,
         include: {
           status: true,
-          assignedTo: { select: { name: true, role: true } },
+          assignedTo: {
+            select: {
+              name: true,
+              imageUrl: true, // Changed from 'image' to 'imageUrl'
+            },
+          },
           owner: { select: { name: true } },
+          products: true,
         },
         orderBy: { createdAt: "desc" },
         take: 50,
       }),
+
       prisma.leadStatus.findMany({
         where: { companyId: dbUser.companyId },
         orderBy: { order: "asc" },
       }),
     ],
   );
-
+console.log("DEBUG LEADS DATA:", JSON.stringify(leads[0], null, 2));
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div className="flex items-center justify-between">
@@ -90,6 +105,9 @@ export default async function EnquiriesPage() {
         statusColumns={statusColumns}
         availableStaff={staff}
         currentUserRole={dbUser.role}
+        categories={categories}
+        products={products}
+    
       />
     </div>
   );

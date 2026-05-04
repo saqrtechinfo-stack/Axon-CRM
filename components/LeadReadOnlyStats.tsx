@@ -3,17 +3,39 @@
 import {
   Mail,
   Phone,
-  Briefcase,
-  CreditCard,
   User,
-  ShieldCheck,
+  BriefcaseBusiness,
+  CircleDollarSignIcon,
 } from "lucide-react";
 
 export function LeadReadOnlyStats({ lead }: { lead: any }) {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Primary Info Cards */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-2">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-red-600">
+            <User className="h-3 w-3" />
+            <p className="text-[10px] font-black uppercase tracking-tight">
+              Contact Person
+            </p>
+          </div>
+          <p className="text-sm font-bold text-slate-700 truncate">
+            {lead.name}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-purple-600">
+            <BriefcaseBusiness className="h-3 w-3" />
+            <p className="text-[10px] font-black uppercase tracking-tight">
+              Designation
+            </p>
+          </div>
+          <p className="text-sm font-bold text-slate-700 truncate">
+            {lead.designation}
+          </p>
+        </div>
+
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
           <div className="flex items-center gap-2 mb-2 text-blue-600">
             <Mail className="h-3 w-3" />
@@ -51,40 +73,18 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
 
       {/* Secondary Details Section */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
-        <div className="flex justify-between items-center pb-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-100 p-2 rounded-lg text-slate-500">
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase text-slate-400">
-                Designation
-              </p>
-              <p className="text-sm font-bold text-slate-700">
-                {lead.designation || "Not Specified"}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-              Expected Value
-            </p>
-            <p className="text-lg font-black text-slate-900 tracking-tighter">
-              AED {lead.value?.toLocaleString() || "0"}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 pt-4">
+
+        <div className="flex items-center gap-3">
           <div className="bg-slate-100 p-2 rounded-lg text-slate-500">
-            <Briefcase className="h-4 w-4" />
+            <CircleDollarSignIcon className="h-6 w-6" />
           </div>
           <div>
             <p className="text-[10px] font-black uppercase text-slate-400">
-              Company / Organization
+              Expected Value
             </p>
             <p className="text-sm font-bold text-slate-700">
-              {lead.clientCompany || "Private Individual"}
+              AED {lead.value?.toLocaleString() || "0"}
             </p>
           </div>
         </div>

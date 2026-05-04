@@ -39,6 +39,7 @@ model User {
   clerkId           String?             @unique
   email             String              @unique
   name              String?
+  imageUrl      String?
   role              Role                @default(SALES_EXECUTIVE)
   companyId         String
   createdAt         DateTime            @default(now())
@@ -58,6 +59,7 @@ model User {
   designation       Designation?        @relation(fields: [designationId], references: [id])
   manager           User?               @relation("ReportsTo", fields: [managerId], references: [id])
   subordinates      User[]              @relation("ReportsTo")
+
 }
 
 model Employee {
@@ -96,6 +98,7 @@ model Employee {
   designation      Designation  @relation("DesignationToEmployee", fields: [designationId], references: [id])
   reportingTo      Employee?    @relation("Hierarchy", fields: [reportingToId], references: [id])
   subordinates     Employee[]   @relation("Hierarchy")
+ 
 
   @@index([companyId])
   @@index([departmentId])
@@ -130,38 +133,42 @@ model Designation {
 }
 
 model Lead {
-  companyId     String
-  clientCompany String?
-  clientName    String?
-  ownerId       String?
-  id            String         @id @default(cuid())
-  name          String
-  email         String
-  phone         String?
-  value         Float          @default(0)
-  notes         String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  statusId      String?
-  designation   String?
-  assignedToId  String?
-  followUpNotes String?
-  nextFollowUp  DateTime?
-  address       String?
-  brand         String?
-  location      String?
-  source        String?
-  categoryId    String?
-  startDate     DateTime       @default(now())
-  attachments   Attachment[]
-  assignedTo    User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
-  category      Category?      @relation(fields: [categoryId], references: [id])
-  company       Company        @relation(fields: [companyId], references: [id])
-  owner         User?          @relation(fields: [ownerId], references: [id])
-  status        LeadStatus?    @relation(fields: [statusId], references: [id])
-  activities    LeadActivity[]
-  quotations    Quotation[]
-  products      Product[]      @relation("LeadProducts")
+  companyId        String
+  clientCompany    String?
+  clientName       String?
+  ownerId          String?
+  isEnquiry        Boolean        @default(true)
+  natureOfBusiness String?
+  id               String         @id @default(cuid())
+  lossReason       String?
+  name             String
+  email            String
+  phone            String?
+  value            Float          @default(0)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  statusId         String?
+  designation      String?
+  assignedToId     String?
+  followUpNotes    String?
+  nextFollowUp     DateTime?
+  address          String?
+  brand            String?
+  location         String?
+  source           String?
+  categoryId       String?
+  startDate        DateTime       @default(now())
+  attachments      Attachment[]
+  assignedTo       User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  category         Category?      @relation(fields: [categoryId], references: [id])
+  company          Company        @relation(fields: [companyId], references: [id])
+  owner            User?          @relation(fields: [ownerId], references: [id])
+  status           LeadStatus?    @relation(fields: [statusId], references: [id])
+  activities       LeadActivity[]
+  quotations       Quotation[]
+  collaboratorIds  String[]
+  products         Product[]      @relation("LeadProducts")
 
   @@index([companyId])
   @@index([statusId])

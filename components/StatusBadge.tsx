@@ -13,33 +13,40 @@ export function StatusBadge({
   id,
   currentStatus,
   statusColumns,
-  onStatusSelect, // ADD THIS PROP
+  onStatusSelect,
 }: {
   id: string;
   currentStatus: any;
   statusColumns: any[];
-  onStatusSelect: (statusId: string) => void; // ADD THIS TYPE
+  onStatusSelect: (statusId: string) => void;
 }) {
-  const getStatusColor = (statusLabel: string) => {
-    const status = statusColumns.find((s) => s.label === statusLabel);
-    return status?.color || "#6b7280";
+  // 1. Fallback if currentStatus is null (common for Enquiries)
+  const statusLabel = currentStatus?.label || "ENQUIRY";
+  const statusId = currentStatus?.id || "";
+
+  const getStatusColor = (label: string) => {
+    const status = statusColumns.find((s) => s.label === label);
+    return status?.color || "#6b7280"; // Gray fallback
   };
+
+  const activeColor = getStatusColor(statusLabel);
 
   return (
     <Select
-      defaultValue={currentStatus.id}
-      onValueChange={(value) => onStatusSelect(value)} // REPORT TO PARENT
+      // Only set defaultValue if we actually have an ID
+      defaultValue={statusId}
+      onValueChange={(value) => onStatusSelect(value)}
     >
       <SelectTrigger
         className={cn(
           "w-[120px] h-7 text-[10px] font-black uppercase tracking-widest rounded-full border border-transparent transition-all shadow-none px-3 focus:ring-0",
         )}
         style={{
-          backgroundColor: `${getStatusColor(currentStatus.label)}20`,
-          color: getStatusColor(currentStatus.label),
+          backgroundColor: `${activeColor}20`,
+          color: activeColor,
         }}
       >
-        <SelectValue placeholder="Status" />
+        <SelectValue placeholder="Enquiry" />
       </SelectTrigger>
       <SelectContent className="bg-white">
         {statusColumns.map((status) => (
