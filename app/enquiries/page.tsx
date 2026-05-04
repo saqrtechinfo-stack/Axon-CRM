@@ -83,7 +83,7 @@ export default async function EnquiriesPage() {
 console.log("DEBUG LEADS DATA:", JSON.stringify(leads[0], null, 2));
   return (
     <div className="space-y-6 p-4 md:p-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
             Enquiries

@@ -192,7 +192,7 @@ export function EnquiryTableWrapper({
         <EnquiryFilters onSearch={setSearchTerm} total={searchedLeads.length} />
 
         <Tabs defaultValue="enquiries" className="w-full">
-          <TabsList className="grid w-[400px] grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
+          <TabsList className="grid max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
             <TabsTrigger
               value="enquiries"
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"

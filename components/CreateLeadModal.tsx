@@ -69,79 +69,80 @@ export function CreateLeadModal({
     return safeProducts.filter((p) => p.categoryId === selectedCategoryId);
   }, [selectedCategoryId, safeProducts]);
 
- async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-   e.preventDefault();
-   if (isSubmitting) return;
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-   setIsSubmitting(true);
-   const formData = new FormData(e.currentTarget);
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
 
-   formData.append("isEnquiry", String(mode === "enquiry"));
-   formData.append("categoryId", selectedCategoryId);
+    formData.append("isEnquiry", String(mode === "enquiry"));
+    formData.append("categoryId", selectedCategoryId);
 
-   // FIX: Send the array of IDs as a JSON string
-   formData.append("productIds", JSON.stringify(selectedProductIds));
+    // FIX: Send the array of IDs as a JSON string
+    formData.append("productIds", JSON.stringify(selectedProductIds));
 
-   formData.append("assignedToId", assignedToId === "none" ? "" : assignedToId);
+    formData.append(
+      "assignedToId",
+      assignedToId === "none" ? "" : assignedToId,
+    );
 
-   try {
-     const result = await createLead(formData);
+    try {
+      const result = await createLead(formData);
 
-     if (result.success) {
-       setOpen(false);
-       toast.success(
-         mode === "enquiry"
-           ? "Enquiry Logged Successfully"
-           : "New Lead Created",
-       );
-       // FIX: Reset all new states
-       setSelectedCategoryId("");
-       setSelectedProductIds([]); // Reset the cart
-       setAssignedToId("");
-     } else {
-       toast.error(result.error);
-     }
-   } finally {
-     setIsSubmitting(false);
-   }
- }
+      if (result.success) {
+        setOpen(false);
+        toast.success(
+          mode === "enquiry"
+            ? "Enquiry Logged Successfully"
+            : "New Lead Created",
+        );
+        // FIX: Reset all new states
+        setSelectedCategoryId("");
+        setSelectedProductIds([]); // Reset the cart
+        setAssignedToId("");
+      } else {
+        toast.error(result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-slate-900 hover:bg-slate-800 shadow-lg font-bold rounded-xl">
+        <Button className="bg-slate-900 hover:bg-slate-800 shadow-lg font-bold rounded-xl w-full sm:w-auto">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add New Entry
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[650px] bg-white border-none shadow-2xl max-h-[95vh] overflow-y-auto rounded-3xl">
+      {/* FIXED: Added w-[95vw] and adjusted padding for mobile */}
+      <DialogContent className="w-[95vw] sm:max-w-[650px] bg-white border-none shadow-2xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
         <DialogHeader className="space-y-4">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase">
-              {mode === "enquiry" ? "Register " : "Create "}
-              <span className="text-blue-600">
-                {mode === "enquiry" ? "Enquiry" : "Sales Lead"}
-              </span>
-            </DialogTitle>
-          </div>
+          <DialogTitle className="text-xl sm:text-2xl font-black text-slate-900 italic tracking-tighter uppercase text-center sm:text-left">
+            {mode === "enquiry" ? "Register " : "Create "}
+            <span className="text-blue-600">
+              {mode === "enquiry" ? "Enquiry" : "Sales Lead"}
+            </span>
+          </DialogTitle>
 
-          {/* Mode Switcher */}
           <Tabs
             value={mode}
             onValueChange={(val) => setMode(val as any)}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 h-12 bg-slate-100 rounded-2xl p-1">
+            <TabsList className="grid w-full grid-cols-2 h-11 sm:h-12 bg-slate-100 rounded-xl sm:rounded-2xl p-1">
               <TabsTrigger
                 value="enquiry"
-                className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-none"
+                className="rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-none"
               >
                 QUICK ENQUIRY
               </TabsTrigger>
               <TabsTrigger
                 value="lead"
-                className="rounded-xl font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-none"
+                className="rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs data-[state=active]:bg-white data-[state=active]:text-blue-600 shadow-none"
               >
                 DIRECT LEAD
               </TabsTrigger>
@@ -149,11 +150,11 @@ export function CreateLeadModal({
           </Tabs>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-          {/* Section: Dynamic Sales Fields (Only for Lead) */}
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 pt-2">
           {mode === "lead" && (
-            <div className="p-5 bg-blue-50/40 rounded-3xl border border-blue-100 space-y-4 animate-in fade-in">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 sm:p-5 bg-blue-50/40 rounded-2xl sm:rounded-3xl border border-blue-100 space-y-4">
+              {/* FIXED: Stack columns on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-blue-600 flex items-center gap-1">
                     <Layers className="h-3 w-3" /> Browse Category
@@ -162,11 +163,11 @@ export function CreateLeadModal({
                     onValueChange={setSelectedCategoryId}
                     value={selectedCategoryId}
                   >
-                    <SelectTrigger className="bg-white border-blue-200 h-11 rounded-xl">
-                      <SelectValue placeholder="Switch category..." />
+                    <SelectTrigger className="bg-white border-blue-200 h-10 sm:h-11 rounded-xl">
+                      <SelectValue placeholder="Category..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat: any) => (
+                      {safeCategories.map((cat: any) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.name}
                         </SelectItem>
@@ -187,12 +188,12 @@ export function CreateLeadModal({
                       }
                     }}
                   >
-                    <SelectTrigger className="bg-white border-blue-200 h-11 rounded-xl text-blue-600 font-bold">
+                    <SelectTrigger className="bg-white border-blue-200 h-10 sm:h-11 rounded-xl text-blue-600 font-bold">
                       <SelectValue
                         placeholder={
                           selectedCategoryId
-                            ? "Add to cart..."
-                            : "Pick category first"
+                            ? "Add product..."
+                            : "Pick category"
                         }
                       />
                     </SelectTrigger>
@@ -207,25 +208,24 @@ export function CreateLeadModal({
                 </div>
               </div>
 
-              {/* Selected Products "Cart" View */}
               {selectedProductIds.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-100/50">
                   {selectedProductIds.map((id) => {
-                    const product = products.find((p: any) => p.id === id);
+                    const product = safeProducts.find((p: any) => p.id === id);
                     return (
                       <Badge
                         key={id}
-                        className="bg-blue-600 hover:bg-rose-500 py-1.5 px-3 rounded-lg flex items-center gap-2 cursor-pointer transition-colors group"
+                        className="bg-blue-600 hover:bg-rose-500 py-1 px-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
                         onClick={() =>
                           setSelectedProductIds((prev) =>
                             prev.filter((pId) => pId !== id),
                           )
                         }
                       >
-                        <span className="text-[10px] font-bold uppercase">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase truncate max-w-[120px]">
                           {product?.name}
                         </span>
-                        <X className="h-3 w-3 opacity-70 group-hover:opacity-100" />
+                        <X className="h-3 w-3" />
                       </Badge>
                     );
                   })}
@@ -234,17 +234,17 @@ export function CreateLeadModal({
             </div>
           )}
 
-          {/* Section: Core Contact Info */}
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* FIXED: All grids changed to responsive stack */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <Building2 className="h-3 w-3" /> Company Name
                 </Label>
                 <Input
                   name="clientCompany"
-                  placeholder="e.g. Al Saqr Tech"
-                  className="bg-slate-50 border-none h-11"
+                  placeholder="Al Saqr Tech"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -255,12 +255,12 @@ export function CreateLeadModal({
                   name="name"
                   required
                   placeholder="Full Name"
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">
                   Designation
@@ -268,7 +268,7 @@ export function CreateLeadModal({
                 <Input
                   name="designation"
                   placeholder="e.g. Manager"
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -278,12 +278,12 @@ export function CreateLeadModal({
                 <Input
                   name="natureOfBusiness"
                   placeholder="e.g. IT Services"
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">
                   Mobile Number
@@ -291,7 +291,7 @@ export function CreateLeadModal({
                 <Input
                   name="phone"
                   placeholder="+971 ..."
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -302,7 +302,7 @@ export function CreateLeadModal({
                   name="email"
                   type="email"
                   placeholder="client@email.com"
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
             </div>
@@ -313,20 +313,20 @@ export function CreateLeadModal({
               </Label>
               <Input
                 name="address"
-                placeholder="Office, Building, City"
-                className="bg-slate-50 border-none h-11"
+                placeholder="Location"
+                className="bg-slate-50 border-none h-10 sm:h-11"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
-                  <Search className="h-3 w-3" /> Source of Enquiry
+                  <Search className="h-3 w-3" /> Source
                 </Label>
                 <Input
                   name="source"
-                  placeholder="e.g. WhatsApp, Cold Call"
-                  className="bg-slate-50 border-none h-11"
+                  placeholder="e.g. WhatsApp"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
               <div className="space-y-2">
@@ -334,7 +334,7 @@ export function CreateLeadModal({
                   <UserPlus className="h-3 w-3" /> Assign To
                 </Label>
                 <Select value={assignedToId} onValueChange={setAssignedToId}>
-                  <SelectTrigger className="bg-slate-50 border-none h-11">
+                  <SelectTrigger className="bg-slate-50 border-none h-10 sm:h-11">
                     <SelectValue placeholder="Select Employee" />
                   </SelectTrigger>
                   <SelectContent>
@@ -342,7 +342,7 @@ export function CreateLeadModal({
                       value="none"
                       className="text-rose-500 font-bold"
                     >
-                      -- Clear Assignment --
+                      -- Clear --
                     </SelectItem>
                     {safeStaff.map((staff) => (
                       <SelectItem key={staff.id} value={staff.id}>
@@ -355,27 +355,27 @@ export function CreateLeadModal({
             </div>
 
             {mode === "lead" && (
-              <div className="space-y-2 animate-in fade-in duration-500">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">
-                  Estimated Deal Value
+                  Estimated Value (AED)
                 </Label>
                 <Input
                   name="value"
                   type="number"
                   placeholder="0.00"
-                  className="bg-slate-50 border-none h-11"
+                  className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
             )}
 
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-slate-400">
-                Additional Notes
+                Notes
               </Label>
               <Textarea
                 name="notes"
-                placeholder="Any specific requirements..."
-                className="bg-slate-50 border-none min-h-[60px] resize-none rounded-2xl"
+                placeholder="Requirements..."
+                className="bg-slate-50 border-none min-h-[80px] resize-none rounded-xl"
               />
             </div>
           </div>
@@ -383,7 +383,7 @@ export function CreateLeadModal({
           <Button
             disabled={isSubmitting}
             type="submit"
-            className={`w-full h-14 rounded-2xl font-bold tracking-tight transition-all shadow-lg ${
+            className={`w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl font-bold transition-all shadow-lg ${
               mode === "enquiry"
                 ? "bg-slate-900 hover:bg-slate-800"
                 : "bg-blue-600 hover:bg-blue-700"
