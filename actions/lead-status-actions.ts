@@ -42,48 +42,73 @@ export async function createLeadStatus(
   }
 }
 
-export async function updateLeadStatus(
-  id: string,
-  data: { label?: string; color?: string },
+
+export async function moveLeadStatus(
+  leadId: string,
+  statusId: string,
+  lossReason?: string,
 ) {
-  const { userId } = await auth();
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return { success: false, error: "Unauthorized" };
 
-  if (!userId) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  // Get the status to verify ownership
-  const status = await prisma.leadStatus.findUnique({
-    where: { id },
-  });
-
-  if (!status) {
-    return { success: false, error: "Status not found" };
-  }
-
-  // Verify user belongs to the company
   const dbUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
+    where: { clerkId },
+    select: { id: true, companyId: true, role: true },
   });
 
-  if (!dbUser || dbUser.companyId !== status.companyId) {
-    return { success: false, error: "Unauthorized" };
+  if (!dbUser) return { success: false, error: "User not found" };
+
+  // 1. Fetch Target Status to check Boolean flags (isWon/isClosing)
+  const targetStatus = await prisma.leadStatus.findUnique({
+    where: { id: statusId },
+  });
+
+  if (!targetStatus || targetStatus.companyId !== dbUser.companyId) {
+    return { success: false, error: "Invalid target status" };
   }
+
+  // Determine Move Type based on Schema Flags
+  const isLost = targetStatus.isClosing && !targetStatus.isWon;
 
   try {
-    const updatedStatus = await prisma.leadStatus.update({
-      where: { id },
-      data,
+    const result = await prisma.$transaction(async (tx) => {
+      // 2. Update the Lead
+      const updatedLead = await tx.lead.update({
+        where: {
+          id: leadId,
+          companyId: dbUser.companyId, // Security: Ensure lead belongs to company
+        },
+        data: {
+          statusId: statusId,
+          // CRM LOGIC: If lost, move back to enquiry and save reason
+          isEnquiry: isLost ? true : undefined,
+          lossReason: isLost ? lossReason : null,
+        },
+      });
+
+      // 3. Create LeadActivity record for the history section
+      await tx.leadActivity.create({
+        data: {
+          leadId: leadId,
+          userId: dbUser.id,
+          type: isLost ? "LEAD_LOST" : "STATUS_CHANGE",
+          content: `Moved to stage: ${targetStatus.label}`,
+          remarks: isLost
+            ? `Loss Reason: ${lossReason}`
+            : "Pipeline transition",
+        },
+      });
+
+      return updatedLead;
     });
 
     revalidatePath("/pipeline");
     revalidatePath("/enquiries");
-    revalidatePath("/settings");
 
-    return { success: true, status: updatedStatus };
+    return { success: true, lead: result };
   } catch (error) {
-    console.error("Error updating lead status:", error);
-    return { success: false, error: "Failed to update status" };
+    console.error("Move Lead Error:", error);
+    return { success: false, error: "Failed to update lead position" };
   }
 }
 

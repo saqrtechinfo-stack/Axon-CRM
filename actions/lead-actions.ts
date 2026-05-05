@@ -174,34 +174,54 @@ export async function updateLeadStatus(
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
 
-  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, companyId: true },
+  });
+
+  if (!dbUser) return { success: false, error: "User not found" };
 
   try {
+    // 1. Fetch the target status to check flags
     const newStatus = await prisma.leadStatus.findUnique({
       where: { id: statusId },
     });
 
+    if (!newStatus) return { success: false, error: "Status not found" };
+
+    // 2. Identify if this is a "Lost" transition
+    // In your schema: isClosing = true AND isWon = false means it's LOST
+    const isLost = newStatus.isClosing && !newStatus.isWon;
+
     await prisma.lead.update({
-      where: { id: leadId },
+      where: {
+        id: leadId,
+        companyId: dbUser.companyId, // Security check
+      },
       data: {
         statusId: statusId,
+        // CRM LOGIC: If lost, move back to enquiry and save reason
+        isEnquiry: isLost ? true : undefined,
+        lossReason: isLost ? remarks : null,
         activities: {
           create: {
-            type: "STATUS_CHANGE",
-            content: `Moved to ${newStatus?.label}`,
-            remarks: remarks || "Status updated via Pipeline/Table.",
-            userId: dbUser!.id,
+            type: isLost ? "LEAD_LOST" : "STATUS_CHANGE",
+            content: `Moved to ${newStatus.label}`,
+            remarks: remarks || "Status updated via Board.",
+            userId: dbUser.id,
           },
         },
       },
     });
 
+    // 3. Clear cache for affected views
     revalidatePath("/enquiries");
     revalidatePath("/pipeline");
+
     return { success: true };
   } catch (error) {
-    console.error(error);
-    return { success: false };
+    console.error("Failed to update lead status:", error);
+    return { success: false, error: "Database update failed" };
   }
 }
 
