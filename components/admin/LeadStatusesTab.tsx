@@ -1,4 +1,3 @@
-// components/admin/LeadStatusesTab.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,27 +9,41 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
+  useSortable,
 } from "@dnd-kit/sortable";
-import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 import { Plus, Edit, Trash2, GitBranch, GripVertical } from "lucide-react";
+
 import {
   createLeadStatus,
+  updateLeadStatus,
   deleteLeadStatus,
   reorderLeadStatuses,
 } from "@/actions/lead-status-actions";
-import { updateLeadStatus } from "@/actions/lead-actions";
+
+/* ---------------- SORTABLE ITEM ---------------- */
 
 function SortableStatusItem({
   status,
@@ -53,14 +66,15 @@ function SortableStatusItem({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between p-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors group"
+      className={`flex items-center justify-between p-3 border rounded-xl bg-white transition-all
+        ${isDragging ? "opacity-0" : "hover:shadow-md"}
+      `}
     >
       <div className="flex items-center gap-3 flex-1">
         <div
@@ -70,29 +84,29 @@ function SortableStatusItem({
         >
           <GripVertical className="h-4 w-4 text-slate-400" />
         </div>
+
         <div
-          className="w-4 h-4 rounded-full border border-slate-300"
+          className="w-4 h-4 rounded-full border"
           style={{ backgroundColor: status.color }}
         />
+
         <span className="font-medium text-slate-900">{status.label}</span>
+
         <Badge variant="secondary" className="text-xs">
-          Order: {status.order}
+          {status.order}
         </Badge>
       </div>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit(status)}
-          className="h-8 w-8 p-0"
-        >
+
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" onClick={() => onEdit(status)}>
           <Edit className="h-4 w-4" />
         </Button>
+
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onDelete(status.id)}
-          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="text-red-600 hover:bg-red-50"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -100,6 +114,29 @@ function SortableStatusItem({
     </div>
   );
 }
+
+/* ---------------- DRAG PREVIEW ---------------- */
+
+function DragPreview({ status }: { status: any }) {
+  if (!status) return null;
+
+  return (
+    <div className="flex items-center justify-between p-3 border rounded-xl bg-white shadow-2xl scale-105">
+      <div className="flex items-center gap-3">
+        <GripVertical className="h-4 w-4 text-slate-400" />
+
+        <div
+          className="w-4 h-4 rounded-full border"
+          style={{ backgroundColor: status.color }}
+        />
+
+        <span className="font-medium text-slate-900">{status.label}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- MAIN COMPONENT ---------------- */
 
 export function LeadStatusesTab({
   companyId,
@@ -109,53 +146,65 @@ export function LeadStatusesTab({
   initialStatuses: any[];
 }) {
   const [statuses, setStatuses] = useState(initialStatuses);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingStatus, setEditingStatus] = useState<any | null>(null);
+
   const [formData, setFormData] = useState({
     label: "",
     color: "#3b82f6",
   });
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
+  const activeStatus = statuses.find((s) => s.id === activeId);
+
+  /* ---------------- DRAG ---------------- */
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveId(null);
+
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = statuses.findIndex((item) => item.id === active.id);
-      const newIndex = statuses.findIndex((item) => item.id === over.id);
+      const oldIndex = statuses.findIndex((i) => i.id === active.id);
+      const newIndex = statuses.findIndex((i) => i.id === over.id);
 
       const newStatuses = arrayMove(statuses, oldIndex, newIndex).map(
-        (status, index) => ({ ...status, order: index }),
+        (s, i) => ({ ...s, order: i }),
       );
 
       setStatuses(newStatuses);
 
-      // Update the order in the database
       const result = await reorderLeadStatuses(
         companyId,
-        newStatuses.map((status) => ({ id: status.id, order: status.order })),
+        newStatuses.map((s) => ({ id: s.id, order: s.order })),
       );
 
       if (!result.success) {
-        // Revert on error
         setStatuses(initialStatuses);
-        alert("Failed to reorder statuses");
+        alert("Reorder failed");
       }
     }
   };
+
+  /* ---------------- CRUD ---------------- */
 
   const handleAdd = async () => {
     if (!formData.label.trim()) return;
 
     const result = await createLeadStatus(companyId, {
-      label: formData.label,
-      color: formData.color,
+      ...formData,
       order: statuses.length,
     });
 
@@ -163,50 +212,40 @@ export function LeadStatusesTab({
       setStatuses([...statuses, result.status]);
       setFormData({ label: "", color: "#3b82f6" });
       setIsAdding(false);
-    } else {
-      alert(result.error || "Failed to create status");
     }
   };
 
-  const handleEdit = async (id: string) => {
-    const status = statuses.find((s) => s.id === id);
-    if (!status) return;
+  const handleEdit = async () => {
+    if (!editingStatus) return;
 
-    const result = await updateLeadStatus(id, {
-      label: formData.label || status.label,
-      color: formData.color || status.color,
-    });
+    const result = await updateLeadStatus(editingStatus.id, formData);
 
     if (result.success) {
-      setStatuses(statuses.map((s) => (s.id === id ? result.status : s)));
-      setEditingId(null);
-      setFormData({ label: "", color: "#3b82f6" });
-    } else {
-      alert(result.error || "Failed to update status");
+      setStatuses(
+        statuses.map((s) => (s.id === editingStatus.id ? result.status : s)),
+      );
+      setEditingStatus(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this status? This may affect existing leads.",
-      )
-    ) {
-      return;
-    }
+    if (!confirm("Delete this status?")) return;
 
     const result = await deleteLeadStatus(id);
     if (result.success) {
       setStatuses(statuses.filter((s) => s.id !== id));
-    } else {
-      alert(result.error || "Failed to delete status");
     }
   };
 
-  const startEdit = (status: any) => {
-    setEditingId(status.id);
-    setFormData({ label: status.label, color: status.color });
+  const openEdit = (status: any) => {
+    setEditingStatus(status);
+    setFormData({
+      label: status.label,
+      color: status.color,
+    });
   };
+
+  /* ---------------- UI ---------------- */
 
   return (
     <Card>
@@ -215,130 +254,111 @@ export function LeadStatusesTab({
           <GitBranch className="h-5 w-5" />
           Lead Statuses
         </CardTitle>
-        <p className="text-sm text-slate-600">
-          Manage the statuses used in your sales pipeline. These will appear as
-          columns in your pipeline view.
-        </p>
       </CardHeader>
+
       <CardContent className="space-y-6">
-        {/* Current Statuses */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-slate-900">
-              Current Statuses
-            </h3>
-            <Button
-              onClick={() => setIsAdding(true)}
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Status
-            </Button>
-          </div>
+        {/* HEADER */}
+        <div className="flex justify-between">
+          <h3 className="text-sm font-medium">Statuses</h3>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+          <Button size="sm" onClick={() => setIsAdding(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
+
+        {/* LIST */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={statuses.map((s) => s.id)}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={statuses.map((status) => status.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2">
-                {statuses.map((status) => (
-                  <SortableStatusItem
-                    key={status.id}
-                    status={status}
-                    onEdit={startEdit}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
-
-        {/* Add/Edit Form */}
-        {(isAdding || editingId) && (
-          <div className="p-4 border border-slate-200 rounded-lg bg-slate-50 space-y-4">
-            <h4 className="font-medium text-slate-900">
-              {editingId ? "Edit Status" : "Add New Status"}
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="label">Status Label</Label>
-                <Input
-                  id="label"
-                  value={formData.label}
-                  onChange={(e) =>
-                    setFormData({ ...formData, label: e.target.value })
-                  }
-                  placeholder="e.g., NEW, CONTACTED, QUALIFIED"
-                  className="mt-1"
+            <div className="space-y-2">
+              {statuses.map((status) => (
+                <SortableStatusItem
+                  key={status.id}
+                  status={status}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
                 />
-              </div>
-              <div>
-                <Label htmlFor="color">Color</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    id="color"
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) =>
-                      setFormData({ ...formData, color: e.target.value })
-                    }
-                    className="w-16 h-10"
-                  />
-                  <Input
-                    value={formData.color}
-                    onChange={(e) =>
-                      setFormData({ ...formData, color: e.target.value })
-                    }
-                    placeholder="#3b82f6"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
+          </SortableContext>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={editingId ? () => handleEdit(editingId) : handleAdd}
-                size="sm"
-              >
-                {editingId ? "Update Status" : "Add Status"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsAdding(false);
-                  setEditingId(null);
-                  setFormData({ label: "", color: "#3b82f6" });
-                }}
-                size="sm"
-              >
-                Cancel
+          {/* 🔥 DRAG OVERLAY */}
+          <DragOverlay>
+            {activeStatus && <DragPreview status={activeStatus} />}
+          </DragOverlay>
+        </DndContext>
+
+        {/* ADD MODAL */}
+        <Dialog open={isAdding} onOpenChange={setIsAdding}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Status</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <Input
+                placeholder="Status name"
+                value={formData.label}
+                onChange={(e) =>
+                  setFormData({ ...formData, label: e.target.value })
+                }
+              />
+
+              <Input
+                type="color"
+                value={formData.color}
+                onChange={(e) =>
+                  setFormData({ ...formData, color: e.target.value })
+                }
+              />
+
+              <Button onClick={handleAdd} className="w-full">
+                Create
               </Button>
             </div>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
-        {/* Help Text */}
-        <div className="text-sm text-slate-600 bg-blue-50 p-3 rounded-lg">
-          <p className="font-medium text-blue-900 mb-1">💡 Tips:</p>
-          <ul className="space-y-1 text-blue-800">
-            <li>
-              • Statuses appear in order from left to right in your pipeline
-            </li>
-            <li>• You cannot delete a status that has leads assigned to it</li>
-            <li>
-              • Changes will be reflected immediately in your pipeline view
-            </li>
-          </ul>
-        </div>
+        {/* EDIT MODAL */}
+        <Dialog
+          open={!!editingStatus}
+          onOpenChange={() => setEditingStatus(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Status</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <Input
+                value={formData.label}
+                onChange={(e) =>
+                  setFormData({ ...formData, label: e.target.value })
+                }
+              />
+
+              <Input
+                type="color"
+                value={formData.color}
+                onChange={(e) =>
+                  setFormData({ ...formData, color: e.target.value })
+                }
+              />
+
+              <Button onClick={handleEdit} className="w-full">
+                Update
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
