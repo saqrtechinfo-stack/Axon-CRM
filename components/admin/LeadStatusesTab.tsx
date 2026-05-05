@@ -27,10 +27,10 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, GitBranch, GripVertical } from "lucide-react";
 import {
   createLeadStatus,
-  updateLeadStatus,
   deleteLeadStatus,
   reorderLeadStatuses,
 } from "@/actions/lead-status-actions";
+import { updateLeadStatus } from "@/actions/lead-actions";
 
 function SortableStatusItem({
   status,
