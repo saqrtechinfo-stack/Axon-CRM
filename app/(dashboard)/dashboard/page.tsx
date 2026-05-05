@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { FunnelChart, RevenueChart } from "@/components/analytics/RevenueChart";
+import { FunnelChart} from "@/components/analytics/RevenueChart";
 import { redirect } from "next/navigation";
 
 export const revalidate = 60;

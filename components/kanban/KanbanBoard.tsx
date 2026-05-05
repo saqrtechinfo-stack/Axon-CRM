@@ -1,3 +1,4 @@
+// components/kanban/KanbanBoard.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,7 +29,6 @@ export function KanbanBoard({
     status: any;
   } | null>(null);
 
-  // Sync state with server data when it changes (e.g., after router.refresh)
   useEffect(() => {
     setMounted(true);
     setLeads(initialLeads);
@@ -45,8 +45,6 @@ export function KanbanBoard({
     const leadId = active.id as string;
     let targetId = over.id as string;
 
-    // 1. Determine the actual target status ID
-    // (Could be dropping on a Column ID or another Card's ID)
     const isColumn = statusColumns.some((col) => col.id === targetId);
     const finalStatusId = isColumn
       ? targetId
@@ -57,21 +55,33 @@ export function KanbanBoard({
     const activeLead = leads.find((l) => l.id === leadId);
     if (!activeLead || activeLead.statusId === finalStatusId) return;
 
-    // 🔥 OPTIMISTIC UPDATE: Move card visually before DB update
+    const targetStatus = statusColumns.find((s) => s.id === finalStatusId);
+
+    // Optimistic Update
     setLeads((prev) =>
       prev.map((l) =>
         l.id === leadId ? { ...l, statusId: finalStatusId } : l,
       ),
     );
 
-    // 2. Prepare the modal for confirmation/remarks
-    const targetStatus = statusColumns.find((s) => s.id === finalStatusId);
-    setPendingMove({ lead: activeLead, status: targetStatus });
+    // Detect if this is a "Won" or "Lost" transition based on Schema Flags
+    const moveType = targetStatus.isWon
+      ? "WON"
+      : targetStatus.isClosing && !targetStatus.isWon
+        ? "LOST"
+        : "NORMAL";
+
+    setPendingMove({
+      lead: activeLead,
+      status: { ...targetStatus, moveType }, // Pass the move type to the modal
+    });
   }
 
   if (!mounted)
     return (
-      <div className="p-8 font-bold animate-pulse">Initializing Board...</div>
+      <div className="p-8 font-bold animate-pulse text-slate-400">
+        Loading Pipeline...
+      </div>
     );
 
   return (
@@ -82,9 +92,7 @@ export function KanbanBoard({
         targetStatus={pendingMove?.status}
         onClose={() => {
           setPendingMove(null);
-          // If they didn't finish the action, initialLeads will still have
-          // the old statusId, which will "snap" the card back via the useEffect above.
-          router.refresh();
+          router.refresh(); // Snap back if cancelled
         }}
       />
 
