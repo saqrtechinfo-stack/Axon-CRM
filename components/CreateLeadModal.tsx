@@ -258,6 +258,17 @@ export function CreateLeadModal({
                   className="bg-slate-50 border-none h-10 sm:h-11"
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Lead Creation Date
+                </Label>
+                <Input
+                  name="startDate"
+                  type="date"
+                  defaultValue={new Date().toISOString().split("T")[0]}
+                  className="bg-white border h-11"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

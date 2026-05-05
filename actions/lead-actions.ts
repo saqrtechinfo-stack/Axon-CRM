@@ -29,8 +29,23 @@ export async function createLead(formData: FormData) {
   const productIdsRaw = formData.get("productIds") as string;
   const productIds: string[] = JSON.parse(productIdsRaw || "[]");
 
-  if (!name || !email)
-    return { success: false, error: "Name and Email are required." };
+const isEmpty = (val: string | null) => !val || !val.trim();
+
+if (isEnquiry) {
+  if (isEmpty(name) || isEmpty(phone)) {
+    return {
+      success: false,
+      error: "Name and Phone are required for enquiries.",
+    };
+  }
+} else {
+  if (isEmpty(name) || isEmpty(phone) || isEmpty(email)) {
+    return {
+      success: false,
+      error: "Name, Phone and Email are required for leads.",
+    };
+  }
+}
 
   // 2. Resolve Assignment (Keep current logic)
   let finalAssignedId = assignedToId === "none" ? null : assignedToId;

@@ -19,6 +19,7 @@ import {
   Check,
   UserCircle2,
   Package,
+  ArrowRightCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UpdateLeadModal } from "./UpdateLeadModal";
@@ -183,6 +184,19 @@ export function LeadDetailsDrawer({
             </div>
           ) : (
             <>
+              {/* CONVERT BUTTON: Only shows if it's an enquiry */}
+              {lead.isEnquiry && (
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleConvert}
+                    size="sm"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-[10px] h-7 px-3 rounded-lg border-none ml-2"
+                  >
+                    <ArrowRightCircle className="h-3.5 w-3.5 mr-1" /> Convert to
+                    Lead
+                  </Button>
+                </div>
+              )}
               {/* Assignment Section */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
