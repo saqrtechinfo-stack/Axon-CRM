@@ -123,9 +123,11 @@ const LeadTable = ({
                       {" "}
                       {lead.clientCompany || "No Company"}
                     </span>
-                    {/* <span className="text-[11px] text-slate-400 font-medium uppercase tracking-tighter">
-                        {lead.name}
-                      </span> */}
+                    <span className="inline-flex max-w-max mt-1 items-center gap-1.5 px-[1px ]py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase tracking-wide border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                      <span className=" h-1.5 rounded-full bg-blue-500"></span>
+                      Channel • {lead.source || "No Source"}
+                      <span></span>
+                    </span>
                   </div>
                 </div>
               </TableCell>

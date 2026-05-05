@@ -145,8 +145,8 @@ export function LeadDetailsDrawer({
                       Created On
                     </span>
                     <span className="text-[11px] font-bold mt-[1px]">
-                      {lead.createdAt
-                        ? format(new Date(lead.createdAt), "dd MMM yyyy")
+                      {lead.startDate
+                        ? format(new Date(lead.startDate), "dd MMM yyyy")
                         : "N/A"}
                     </span>
                   </div>

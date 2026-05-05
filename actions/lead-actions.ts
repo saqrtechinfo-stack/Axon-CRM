@@ -24,6 +24,7 @@ export async function createLead(formData: FormData) {
   const notes = formData.get("notes") as string;
   const value = parseFloat(formData.get("value") as string) || 0;
   const assignedToId = formData.get("assignedToId") as string;
+  const startDateRaw = formData.get("startDate") as string;
 
   // FIX: Parse the multi-product JSON string
   const productIdsRaw = formData.get("productIds") as string;
@@ -79,7 +80,7 @@ if (isEnquiry) {
         companyId: dbUser.companyId,
         ownerId: dbUser.id,
         assignedToId: finalAssignedId,
-        startDate: new Date(),
+        startDate: startDateRaw ? new Date(startDateRaw) : new Date(),
         // FIX: Connect multiple products using the parsed array
         ...(productIds.length > 0 &&
           !isEnquiry && {

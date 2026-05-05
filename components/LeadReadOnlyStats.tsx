@@ -6,6 +6,8 @@ import {
   User,
   BriefcaseBusiness,
   CircleDollarSignIcon,
+  LucideDatabase,
+  Notebook,
 } from "lucide-react";
 
 export function LeadReadOnlyStats({ lead }: { lead: any }) {
@@ -69,12 +71,33 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
             {lead.phone || "Missing Number"}
           </p>
         </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-cyan-600">
+            <LucideDatabase className="h-3 w-3" />
+            <p className="text-[10px] font-black uppercase tracking-tight">
+              Source
+            </p>
+          </div>
+          <p className="text-sm font-bold text-slate-700 truncate">
+            {lead.source||"Not provided"}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
+          <div className="flex items-center gap-2 mb-2 text-yellow-600 ">
+            <Notebook className="h-3 w-3" />
+            <p className="text-[10px] font-black uppercase tracking-tight">
+              Notes
+            </p>
+          </div>
+          <p className="text-sm italic font-small text-slate-700 truncate">
+            {lead.notes||"Not provided"} 
+          </p>
+        </div>
       </div>
 
       {/* Secondary Details Section */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm divide-y divide-slate-100">
-
-
         <div className="flex items-center gap-3">
           <div className="bg-slate-100 p-2 rounded-lg text-slate-500">
             <CircleDollarSignIcon className="h-6 w-6" />

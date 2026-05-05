@@ -13,24 +13,33 @@ export default async function DashboardPage() {
 
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId || "" },
-    select: { role: true, companyId: true }, // Only fetch what we need
+    select: { id: true, role: true, companyId: true }, // Only fetch what we need
   });
 
   if (!dbUser) redirect("/sign-in");
-  // 🔥 OPTIMIZATION 2: Database-side Aggregation
-  // We fetch counts and sums directly from Postgres.
-  const commonWhere =
-    dbUser.role === "SUPER_ADMIN" ? {} : { companyId: dbUser.companyId };
+
+const leadWhere =
+  dbUser.role === "SUPER_ADMIN"
+    ? {}
+    : {
+        companyId: dbUser.companyId,
+        ownerId: dbUser.id, // Matches the 'ownerId' field in your Lead model
+      };
+
+// Filter for Statuses: restricted only to the company level
+const statusWhere =
+  dbUser.role === "SUPER_ADMIN" ? {} : { companyId: dbUser.companyId };
 
   const [stats, statusCounts] = await Promise.all([
     prisma.lead.aggregate({
-      where: commonWhere,
+      where: leadWhere,
       _sum: { value: true },
       _count: { id: true },
     }),
+
     prisma.lead.groupBy({
       by: ["statusId"],
-      where: commonWhere,
+      where: leadWhere,
       _sum: { value: true },
       _count: { id: true },
     }),
@@ -38,7 +47,7 @@ export default async function DashboardPage() {
 
   // Fetch status labels to map them back to the grouped data
   const statusLabels = await prisma.leadStatus.findMany({
-    where: commonWhere,
+    where: statusWhere,
     select: { id: true, label: true },
   });
 
