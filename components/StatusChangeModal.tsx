@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 import { Loader2, ArrowRight, AlertTriangle } from "lucide-react";
-import { moveLeadStatus } from "@/actions/lead-status-actions";
 import { updateLeadStatus } from "@/actions/lead-actions";
 
 
