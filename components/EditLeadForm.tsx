@@ -164,75 +164,77 @@ export function EditLeadForm({
       </div>
 
       {/* Product Management Section */}
-      <div className="p-4 bg-slate-100 rounded-2xl border border-slate-200 space-y-4">
-        <div className="flex items-center gap-2">
-          <Package className="h-4 w-4 text-blue-600" />
-          <Label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
-            Manage Interested Products
-          </Label>
-        </div>
+      {lead.isEnquiry === false && (
+        <div className="p-4 bg-slate-100 rounded-2xl border border-slate-200 space-y-4">
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-blue-600" />
+            <Label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+              Manage Interested Products
+            </Label>
+          </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          <Select onValueChange={setSelectedCategoryId}>
-            <SelectTrigger className="bg-white border-slate-200 text-xs">
-              <SelectValue placeholder="Filter Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select onValueChange={addProduct} disabled={!selectedCategoryId}>
-            <SelectTrigger className="bg-white border-slate-200 text-xs">
-              <SelectValue placeholder="Add Product" />
-            </SelectTrigger>
-            <SelectContent>
-              {products
-                .filter((p) => p.categoryId === selectedCategoryId)
-                .map((prod) => (
-                  <SelectItem key={prod.id} value={prod.id}>
-                    {prod.name}
+          <div className="grid grid-cols-1 gap-3">
+            <Select onValueChange={setSelectedCategoryId}>
+              <SelectTrigger className="bg-white border-slate-200 text-xs">
+                <SelectValue placeholder="Filter Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
                   </SelectItem>
                 ))}
-            </SelectContent>
-          </Select>
-        </div>
+              </SelectContent>
+            </Select>
 
-        {/* Product Cart Display */}
-        <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-white/50 rounded-lg border border-dashed border-slate-300">
-          {selectedProductIds.length > 0 ? (
-            selectedProductIds.map((id) => {
-              const product = products.find((p) => p.id === id);
-              return (
-                <Badge
-                  key={id}
-                  variant="secondary"
-                  className="bg-blue-600 text-white pl-3 pr-1 py-1 gap-1"
-                >
-                  <span className="text-[10px] font-bold uppercase">
-                    {product?.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeProduct(id)}
-                    className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+            <Select onValueChange={addProduct} disabled={!selectedCategoryId}>
+              <SelectTrigger className="bg-white border-slate-200 text-xs">
+                <SelectValue placeholder="Add Product" />
+              </SelectTrigger>
+              <SelectContent>
+                {products
+                  .filter((p) => p.categoryId === selectedCategoryId)
+                  .map((prod) => (
+                    <SelectItem key={prod.id} value={prod.id}>
+                      {prod.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Product Cart Display */}
+          <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-white/50 rounded-lg border border-dashed border-slate-300">
+            {selectedProductIds.length > 0 ? (
+              selectedProductIds.map((id) => {
+                const product = products.find((p) => p.id === id);
+                return (
+                  <Badge
+                    key={id}
+                    variant="secondary"
+                    className="bg-blue-600 text-white pl-3 pr-1 py-1 gap-1"
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              );
-            })
-          ) : (
-            <p className="text-[10px] text-slate-400 font-bold uppercase m-auto">
-              No products selected
-            </p>
-          )}
+                    <span className="text-[10px] font-bold uppercase">
+                      {product?.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeProduct(id)}
+                      className="hover:bg-blue-700 rounded-full p-0.5 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })
+            ) : (
+              <p className="text-[10px] text-slate-400 font-bold uppercase m-auto">
+                No products selected
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
