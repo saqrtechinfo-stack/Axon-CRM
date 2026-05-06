@@ -137,16 +137,18 @@ const LeadTable = ({
                     <User2 className="h-3 w-3 opacity-50" />
                     <span className="text-xs font-medium">{lead.name}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Mail className="h-3 w-3 opacity-50" />
-                    <span className="text-xs font-medium">{lead.email}</span>
-                  </div>
                   <div
                     className={`flex items-center gap-1.5 ${lead.phone ? "text-slate-600" : "text-amber-500 font-bold"}`}
                   >
                     <Phone className="h-3 w-3 opacity-50" />
                     <span className="text-xs">
                       {lead.phone || "Missing Number"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-600">
+                    <Mail className="h-3 w-3 opacity-50" />
+                    <span className="text-xs font-medium">
+                      {lead.email || "N/A"}
                     </span>
                   </div>
                 </div>

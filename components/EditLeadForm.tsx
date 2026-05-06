@@ -7,7 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { Loader2, Save, AlertCircle, Package, X, Plus, UserPlus } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  AlertCircle,
+  Package,
+  X,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -80,12 +87,12 @@ export function EditLeadForm({
       className="space-y-5 animate-in fade-in slide-in-from-top-4 duration-300"
     >
       {/* UAE Format Alert */}
-      <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl flex items-center gap-3 mb-4">
+      {/* <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl flex items-center gap-3 mb-4">
         <AlertCircle className="h-4 w-4 text-amber-600" />
         <p className="text-[10px] font-bold text-amber-700 uppercase tracking-tight">
           Updating Lead Profile: Ensure UAE Phone Formats are correct
         </p>
-      </div>
+      </div> */}
       {/* Assignment Section - NEW */}
       <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
         <div className="flex items-center gap-2">
@@ -117,13 +124,14 @@ export function EditLeadForm({
         </Select>
       </div>
       {/* Basic Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label className="text-[10px] font-black text-slate-400 uppercase">
             Contact Name
           </Label>
           <Input name="name" defaultValue={lead.name} className="bg-white" />
         </div>
+
         <div className="space-y-2">
           <Label className="text-[10px] font-black text-slate-400 uppercase">
             Designation
@@ -136,7 +144,7 @@ export function EditLeadForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label className="text-[10px] font-black text-slate-400 uppercase">
             Email Address
@@ -236,7 +244,7 @@ export function EditLeadForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <div className="space-y-2">
           <Label className="text-[10px] font-black text-slate-400 uppercase">
             Organization
@@ -258,6 +266,17 @@ export function EditLeadForm({
             className="bg-white"
           />
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-[10px] font-black text-slate-400 uppercase">
+          Notes
+        </Label>
+        <textarea
+          name="notes"
+          defaultValue={lead.notes}
+          rows={5}
+          className="w-full bg-white rounded-md border border-slate-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       <Button

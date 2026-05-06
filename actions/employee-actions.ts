@@ -113,22 +113,20 @@ export async function toggleEmployeeStatus(
 
 export async function updateEmployee(id: string, data: any) {
   try {
+    const reportingToId =
+      data.reportingToId === "" || data.reportingToId === "NONE"
+        ? null
+        : data.reportingToId;
+
     const updateData: any = {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
       phone: data.phone,
       fullAddress: data.fullAddress,
-
-      // CRITICAL FIX: Convert empty strings to null for relations
       designationId: data.designationId || undefined,
       departmentId: data.departmentId || undefined,
-      reportingToId:
-        data.reportingToId === "" || data.reportingToId === "NONE"
-          ? null
-          : data.reportingToId,
-
-      // New fields
+      reportingToId: reportingToId, // This is the Employee ID for the HR side
       emergencyName: data.emergencyName,
       emergencyPhone: data.emergencyPhone,
       bankName: data.bankName,
@@ -140,23 +138,46 @@ export async function updateEmployee(id: string, data: any) {
       updateData.imageUrl = data.imageUrl;
     }
 
-    await prisma.employee.update({
-      where: { id },
-      data: updateData,
+    // Wrap in a transaction to keep HR and CRM in sync
+    await prisma.$transaction(async (tx) => {
+      // 1. Update the Employee HR record
+      const updatedEmployee = await tx.employee.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // 2. Sync Hierarchy to the User table for Lead Visibility
+      if (updatedEmployee.email) {
+        let managerUserId: string | null = null;
+
+        // If a manager (Employee) was selected, find their corresponding User ID
+        if (reportingToId) {
+          const managerEmployee = await tx.employee.findUnique({
+            where: { id: reportingToId },
+            select: { email: true },
+          });
+
+          if (managerEmployee?.email) {
+            const managerUser = await tx.user.findUnique({
+              where: { email: managerEmployee.email },
+              select: { id: true },
+            });
+            managerUserId = managerUser?.id || null;
+          }
+        }
+
+        // Update the current subordinate's User record with the Manager's User ID
+        await tx.user.updateMany({
+          where: { email: updatedEmployee.email },
+          data: { managerId: managerUserId },
+        });
+      }
     });
 
     revalidatePath("/management/staff");
     return { success: true };
   } catch (error: any) {
     console.error("Prisma Update Error:", error);
-    // Return a cleaner error message to the UI
-    if (error.code === "P2003") {
-      return {
-        error:
-          "Foreign key failed: The selected Manager, Dept, or Designation is invalid.",
-      };
-    }
     return { error: error.message || "Failed to update employee" };
   }
 }
-

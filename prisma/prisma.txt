@@ -1,0 +1,314 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Company {
+  id              String              @id @default(cuid())
+  name            String              @unique
+  domain          String?             @unique
+  logo            String?
+  plan            String              @default("BASIC")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  status          CompanyStatus       @default(ACTIVE)
+  empIdPrefix     String              @default("EMP-")
+  nextEmpNumber   Int                 @default(1001)
+  address         String?
+  contactEmail    String?
+  contactPhone    String?
+  subscriptionEnd DateTime?
+  trialEndsAt     DateTime?
+  categories      Category[]
+  invitations     CompanyInvitation[]
+  departments     Department[]
+  designations    Designation[]
+  employees       Employee[]
+  leads           Lead[]
+  statuses        LeadStatus[]
+  products        Product[]
+  quotations      Quotation[]
+  users           User[]
+}
+
+model User {
+  id                String              @id @default(cuid())
+  clerkId           String?             @unique
+  email             String              @unique
+  name              String?
+  role              Role                @default(SALES_EXECUTIVE)
+  companyId         String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  departmentId      String?
+  designationId     String?
+  managerId         String?
+  status            UserStatus          @default(ACTIVE)
+  isSystemAdmin     Boolean             @default(false)
+  imageUrl          String?
+  invitations       CompanyInvitation[] @relation("UserToInvitation")
+  assignedLeads     Lead[]              @relation("AssignedLeads")
+  leads             Lead[]
+  activities        LeadActivity[]
+  createdQuotations Quotation[]         @relation("QuotationCreator")
+  company           Company             @relation(fields: [companyId], references: [id])
+  department        Department?         @relation(fields: [departmentId], references: [id])
+  designation       Designation?        @relation(fields: [designationId], references: [id])
+  manager           User?               @relation("ReportsTo", fields: [managerId], references: [id])
+  subordinates      User[]              @relation("ReportsTo")
+}
+
+model Employee {
+  id               String       @id @default(cuid())
+  employeeId       String       @unique
+  firstName        String
+  lastName         String
+  email            String       @unique
+  phone            String
+  status           String       @default("ACTIVE")
+  companyId        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  altPhone         String?
+  city             String?
+  country          String       @default("United Arab Emirates")
+  departmentId     String
+  designationId    String
+  reportingToId    String?
+  role             EmployeeRole @default(STAFF)
+  imageUrl         String?
+  fullAddress      String?
+  joiningDate      DateTime?    @default(now())
+  probationDays    Int          @default(90)
+  bankName         String?
+  dob              DateTime?
+  emergencyName    String?
+  emergencyPhone   String?
+  iban             String?
+  swiftCode        String?
+  gender           String?
+  attachments      Attachment[] @relation("EmployeeAttachments")
+  leadsDepartments Department[] @relation("DepartmentLead")
+  company          Company      @relation(fields: [companyId], references: [id])
+  department       Department   @relation("DepartmentToEmployee", fields: [departmentId], references: [id])
+  designation      Designation  @relation("DesignationToEmployee", fields: [designationId], references: [id])
+  reportingTo      Employee?    @relation("Hierarchy", fields: [reportingToId], references: [id])
+  subordinates     Employee[]   @relation("Hierarchy")
+
+  @@index([companyId])
+  @@index([departmentId])
+}
+
+model Department {
+  id        String       @id @default(cuid())
+  name      String
+  companyId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  managerId String?
+  parentId  String?
+  company   Company      @relation(fields: [companyId], references: [id])
+  manager   Employee?    @relation("DepartmentLead", fields: [managerId], references: [id])
+  parent    Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Department[] @relation("SubDepartments")
+  employees Employee[]   @relation("DepartmentToEmployee")
+  users     User[]
+}
+
+model Designation {
+  id           String     @id @default(cuid())
+  name         String
+  companyId    String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  isManagement Boolean    @default(false)
+  company      Company    @relation(fields: [companyId], references: [id])
+  employees    Employee[] @relation("DesignationToEmployee")
+  users        User[]
+}
+
+model Lead {
+  companyId        String
+  clientCompany    String?
+  clientName       String?
+  ownerId          String?
+  id               String         @id @default(cuid())
+  name             String
+  email            String
+  phone            String?
+  value            Float          @default(0)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  statusId         String?
+  designation      String?
+  assignedToId     String?
+  followUpNotes    String?
+  nextFollowUp     DateTime?
+  address          String?
+  brand            String?
+  location         String?
+  source           String?
+  categoryId       String?
+  startDate        DateTime       @default(now())
+  collaboratorIds  String[]
+  isEnquiry        Boolean        @default(true)
+  lossReason       String?
+  natureOfBusiness String?
+  attachments      Attachment[]
+  assignedTo       User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  category         Category?      @relation(fields: [categoryId], references: [id])
+  company          Company        @relation(fields: [companyId], references: [id])
+  owner            User?          @relation(fields: [ownerId], references: [id])
+  status           LeadStatus?    @relation(fields: [statusId], references: [id])
+  activities       LeadActivity[]
+  quotations       Quotation[]
+  products         Product[]      @relation("LeadProducts")
+
+  @@index([companyId])
+  @@index([statusId])
+}
+
+model LeadStatus {
+  id        String   @id @default(cuid())
+  label     String
+  color     String   @default("#3b82f6")
+  order     Int      @default(0)
+  isClosing Boolean  @default(false)
+  isWon     Boolean  @default(false)
+  companyId String
+  createdAt DateTime @default(now())
+  leads     Lead[]
+  company   Company  @relation(fields: [companyId], references: [id])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  type      String
+  content   String
+  remarks   String?
+  leadId    String
+  userId    String
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model CompanyInvitation {
+  id            String   @id @default(cuid())
+  email         String
+  name          String
+  role          Role     @default(ADMIN)
+  status        String   @default("PENDING")
+  companyId     String
+  invitedBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  company       Company  @relation(fields: [companyId], references: [id])
+  invitedByUser User     @relation("UserToInvitation", fields: [invitedBy], references: [id])
+
+  @@unique([email, companyId])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  companyId String
+  createdAt DateTime  @default(now())
+  company   Company   @relation(fields: [companyId], references: [id])
+  leads     Lead[]
+  products  Product[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float    @default(0)
+  unit        String   @default("pcs")
+  categoryId  String
+  companyId   String
+  createdAt   DateTime @default(now())
+  category    Category @relation(fields: [categoryId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+  leads       Lead[]   @relation("LeadProducts")
+
+  @@index([categoryId])
+  @@index([companyId])
+}
+
+model Quotation {
+  id          String          @id @default(cuid())
+  qId         String          @unique
+  status      String          @default("DRAFT")
+  version     Int             @default(1)
+  subTotal    Float
+  taxAmount   Float           @default(0)
+  discount    Float           @default(0)
+  totalAmount Float
+  leadId      String
+  createdById String
+  companyId   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  company     Company         @relation(fields: [companyId], references: [id])
+  createdBy   User            @relation("QuotationCreator", fields: [createdById], references: [id])
+  lead        Lead            @relation(fields: [leadId], references: [id])
+  items       QuotationItem[]
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  description String
+  quantity    Float
+  unitPrice   Float
+  total       Float
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id         String    @id @default(cuid())
+  name       String
+  url        String
+  size       Int?
+  type       String?
+  leadId     String
+  createdAt  DateTime  @default(now())
+  employeeId String?
+  employee   Employee? @relation("EmployeeAttachments", fields: [employeeId], references: [id], onDelete: Cascade)
+  lead       Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+  TRIAL
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  SALES_EXECUTIVE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+enum EmployeeRole {
+  STAFF
+  SUPERVISOR
+  MANAGER
+  HR
+  ADMIN
+}

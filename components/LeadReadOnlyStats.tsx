@@ -45,8 +45,8 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
               Email Address
             </p>
           </div>
-          <p className="text-sm font-bold text-slate-700 truncate">
-            {lead.email}
+          <p className="text-sm font-bold text-slate-700 ">
+            {lead.email || "N/A"}
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
             </p>
           </div>
           <p className="text-sm font-bold text-slate-700 truncate">
-            {lead.source||"Not provided"}
+            {lead.source || "Not provided"}
           </p>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
@@ -90,8 +90,8 @@ export function LeadReadOnlyStats({ lead }: { lead: any }) {
               Notes
             </p>
           </div>
-          <p className="text-sm italic font-small text-slate-700 truncate">
-            {lead.notes||"Not provided"} 
+          <p className="text-sm italic font-small text-slate-700 ">
+            {lead.notes || "Not provided"}
           </p>
         </div>
       </div>

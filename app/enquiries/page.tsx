@@ -10,7 +10,7 @@ export default async function EnquiriesPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // 1. Get User and verify existence before doing anything else
+  // 1. Get User and verify existence
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
     select: { id: true, companyId: true, role: true },
@@ -22,11 +22,23 @@ export default async function EnquiriesPage() {
   const whereClause: any = { companyId: dbUser.companyId };
 
   if (dbUser.role === "SALES_EXECUTIVE") {
-    whereClause.assignedToId = dbUser.id;
+    // Executives see leads specifically assigned to them or those they own
+    whereClause.OR = [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }];
   } else if (dbUser.role === "MANAGER") {
+    // Managers see their own leads, team leads, and unassigned enquiries
     whereClause.OR = [
       { assignedToId: dbUser.id },
-      { assignedTo: { managerId: dbUser.id } },
+      { ownerId: dbUser.id },
+      {
+        assignedTo: {
+          managerId: dbUser.id,
+        },
+      },
+      {
+        owner: {
+          managerId: dbUser.id,
+        },
+      },
       { assignedToId: null },
     ];
   }
@@ -42,20 +54,21 @@ export default async function EnquiriesPage() {
         where: { companyId: dbUser.companyId },
         select: { id: true, name: true, categoryId: true },
       }),
-      // Section 1: Staff Fetching
+      // Section 1: Staff Fetching (Hierarchy-aware)
       prisma.user.findMany({
-        where:
-          dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN"
-            ? { companyId: dbUser.companyId }
-            : { OR: [{ id: dbUser.id }, { managerId: dbUser.id }] },
+        where: {
+          companyId: dbUser.companyId,
+          ...(dbUser.role !== "ADMIN" && dbUser.role !== "SUPER_ADMIN"
+            ? { OR: [{ id: dbUser.id }, { managerId: dbUser.id }] }
+            : {}),
+        },
         select: {
           id: true,
           name: true,
           role: true,
-          imageUrl: true, // Changed from 'image' to 'imageUrl'
+          imageUrl: true,
         },
       }),
-
       // Section 2: Lead Fetching
       prisma.lead.findMany({
         where: whereClause,
@@ -64,7 +77,7 @@ export default async function EnquiriesPage() {
           assignedTo: {
             select: {
               name: true,
-              imageUrl: true, // Changed from 'image' to 'imageUrl'
+              imageUrl: true,
             },
           },
           owner: { select: { name: true } },
@@ -73,14 +86,13 @@ export default async function EnquiriesPage() {
         orderBy: { createdAt: "desc" },
         take: 50,
       }),
-
       prisma.leadStatus.findMany({
         where: { companyId: dbUser.companyId },
         orderBy: { order: "asc" },
       }),
     ],
   );
-console.log("DEBUG LEADS DATA:", JSON.stringify(leads[0], null, 2));
+
   return (
     <div className="space-y-6 p-4 md:p-8">
       <div className="flex flex-col md:flex-row items-center justify-between">
@@ -107,7 +119,6 @@ console.log("DEBUG LEADS DATA:", JSON.stringify(leads[0], null, 2));
         currentUserRole={dbUser.role}
         categories={categories}
         products={products}
-    
       />
     </div>
   );

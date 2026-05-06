@@ -149,6 +149,7 @@ export async function updateLeadDetails(leadId: string, data: any) {
         email: data.email,
         phone: data.phone,
         designation: data.designation,
+        notes:data.notes,
         clientCompany: data.clientCompany,
         value: parseFloat(data.value) || 0,
         assignedToId: data.assignedToId || null,
