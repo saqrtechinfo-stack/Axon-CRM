@@ -25,8 +25,11 @@ export function EnquiryTableWrapper({
   categories, 
   products,
   totalCount, 
+  totalEnquiry,
+  totalLeads,
   currentPage,
   pageSize,
+  activeTab
 }: {
   initialLeads: any[];
   statusColumns: any[];
@@ -77,6 +80,12 @@ export function EnquiryTableWrapper({
   const enquiries = searchedLeads.filter((l) => l.isEnquiry);
   const activeLeads = searchedLeads.filter((l) => !l.isEnquiry);
 
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", value);
+    params.set("page", "1"); // ALWAYS reset to page 1 when switching tabs
+    router.push(`?${params.toString()}`);
+  };
   const LeadTable = ({
     data,
     isEnquiry,
@@ -102,11 +111,11 @@ export function EnquiryTableWrapper({
             <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
               Value
             </TableHead>
-            {currentUserRole !== "SALES_EXECUTIVE" && (
-              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-                Assignee
-              </TableHead>
-            )}
+            {/* {currentUserRole !== "SALES_EXECUTIVE" && ( */}
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Assignee
+            </TableHead>
+            {/* )} */}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -167,7 +176,10 @@ export function EnquiryTableWrapper({
                   </div>
                 </TableCell>
                 {lead.isEnquiry === false && (
-                  <TableCell className="py-4">
+                  <TableCell
+                    className="py-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <StatusBadge
                       id={lead.id}
                       currentStatus={lead.status}
@@ -187,24 +199,24 @@ export function EnquiryTableWrapper({
                   </span>
                   {lead.value.toLocaleString()}
                 </TableCell>
-                {currentUserRole !== "SALES_EXECUTIVE" && (
-                  <TableCell className="py-4">
-                    {lead.assignedTo ? (
-                      <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200">
-                          {lead.assignedTo.name?.charAt(0)}
-                        </div>
-                        <span className="text-[11px] font-bold text-slate-700">
-                          {lead.assignedTo.name}
-                        </span>
+                {/* {currentUserRole !== "SALES_EXECUTIVE" && ( */}
+                <TableCell className="py-4">
+                  {lead.assignedTo ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200">
+                        {lead.assignedTo.name?.charAt(0)}
                       </div>
-                    ) : (
-                      <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-md italic">
-                        Unassigned
+                      <span className="text-[11px] font-bold text-slate-700">
+                        {lead.assignedTo.name}
                       </span>
-                    )}
-                  </TableCell>
-                )}
+                    </div>
+                  ) : (
+                    <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-md italic">
+                      Unassigned
+                    </span>
+                  )}
+                </TableCell>
+                {/* )} */}
               </TableRow>
             ))
           )}
@@ -218,7 +230,12 @@ export function EnquiryTableWrapper({
       <div className="flex flex-col gap-4">
         <EnquiryFilters onSearch={setSearchTerm} total={totalCount} />
 
-        <Tabs defaultValue="enquiries" className="w-full">
+        <Tabs
+          defaultValue="enquiries"
+          className="w-full cursor-pointer"
+          value={activeTab}
+          onValueChange={handleTabChange}
+        >
           <TabsList className="grid max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
             <TabsTrigger
               value="enquiries"
@@ -229,7 +246,7 @@ export function EnquiryTableWrapper({
                 Enquiries
               </span>
               <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
-                {totalCount}
+                {totalEnquiry}
               </span>
             </TabsTrigger>
             <TabsTrigger
@@ -241,7 +258,7 @@ export function EnquiryTableWrapper({
                 Active Leads
               </span>
               <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
-                {activeLeads.length}
+                {totalLeads}
               </span>
             </TabsTrigger>
           </TabsList>
@@ -253,7 +270,7 @@ export function EnquiryTableWrapper({
             <LeadTable data={activeLeads} isEnquiry={false} />
           </TabsContent>
         </Tabs>
-        <div className="flex items-center justify-between border-t border-slate-200 pt-4 px-2">
+        <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">
           <div className="text-xs text-slate-500 font-medium">
             Showing{" "}
             <span className="font-bold text-slate-900">
@@ -263,8 +280,7 @@ export function EnquiryTableWrapper({
             <span className="font-bold text-slate-900">
               {Math.min(currentPage * pageSize, totalCount)}
             </span>{" "}
-            of (<span className="">{totalCount}</span>{" "}
-            results)
+            of (<span className="">{totalCount}</span> results)
           </div>
 
           <div className="flex items-center gap-2">
