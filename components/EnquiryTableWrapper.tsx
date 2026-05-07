@@ -22,23 +22,36 @@ export function EnquiryTableWrapper({
   statusColumns,
   currentUserRole,
   availableStaff,
-  categories, // Accept this
+  categories, 
   products,
+  totalCount, 
+  currentPage,
+  pageSize,
 }: {
   initialLeads: any[];
   statusColumns: any[];
   availableStaff: any[];
   currentUserRole: string;
-  categories:any[];
-  products:any[];
+  categories: any[];
+  products: any[];
+  totalCount: number;
+  currentPage: number;
+  pageSize: number;
 }) {
+  const router = useRouter();
+  const totalPages = Math.ceil(totalCount / pageSize);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [pendingMove, setPendingMove] = useState<{
     lead: any;
     status: any;
   } | null>(null);
-  const router = useRouter();
+
+  const setPage = (newPage: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", newPage.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (selectedLead) {
@@ -64,146 +77,146 @@ export function EnquiryTableWrapper({
   const enquiries = searchedLeads.filter((l) => l.isEnquiry);
   const activeLeads = searchedLeads.filter((l) => !l.isEnquiry);
 
-const LeadTable = ({
-  data,
-  isEnquiry,
-}: {
-  data: any[];
-  isEnquiry?: boolean;
-}) => (
-  <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-    <Table>
-      <TableHeader className="bg-slate-50/50">
-        <TableRow className="hover:bg-transparent">
-          <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-            Customer
-          </TableHead>
-          <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-            Contact
-          </TableHead>
-          {!isEnquiry && (
+  const LeadTable = ({
+    data,
+    isEnquiry,
+  }: {
+    data: any[];
+    isEnquiry?: boolean;
+  }) => (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <Table>
+        <TableHeader className="bg-slate-50/50">
+          <TableRow className="hover:bg-transparent">
             <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-              Status
+              Customer
             </TableHead>
-          )}
-          <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-            Value
-          </TableHead>
-          {currentUserRole !== "SALES_EXECUTIVE" && (
             <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
-              Assignee
+              Contact
             </TableHead>
-          )}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {data.length === 0 ? (
-          <TableRow>
-            <TableCell
-              colSpan={isEnquiry ? 4 : 5}
-              className="h-32 text-center text-slate-400 text-sm italic"
-            >
-              No records found.
-            </TableCell>
+            {!isEnquiry && (
+              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+                Status
+              </TableHead>
+            )}
+            <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+              Value
+            </TableHead>
+            {currentUserRole !== "SALES_EXECUTIVE" && (
+              <TableHead className="font-bold text-slate-900 text-[11px] uppercase p-4">
+                Assignee
+              </TableHead>
+            )}
           </TableRow>
-        ) : (
-          data.map((lead) => (
-            <TableRow
-              key={lead.id}
-              onClick={() => setSelectedLead(lead)}
-              className="group hover:bg-slate-50/80 transition-all cursor-pointer border-b border-slate-100"
-            >
-              <TableCell className="py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                    {lead.clientCompany.charAt(0)}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {" "}
-                      {lead.clientCompany || "No Company"}
-                    </span>
-                    <span className="inline-flex max-w-max mt-1 items-center gap-1.5 px-[1px ]py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase tracking-wide border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
-                      <span className=" h-1.5 rounded-full bg-blue-500"></span>
-                      Channel • {lead.source || "No Source"}
-                      <span></span>
-                    </span>
-                  </div>
-                </div>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={isEnquiry ? 4 : 5}
+                className="h-32 text-center text-slate-400 text-sm italic"
+              >
+                No records found.
               </TableCell>
-              <TableCell className="py-4">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <User2 className="h-3 w-3 opacity-50" />
-                    <span className="text-xs font-medium">{lead.name}</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1.5 ${lead.phone ? "text-slate-600" : "text-amber-500 font-bold"}`}
-                  >
-                    <Phone className="h-3 w-3 opacity-50" />
-                    <span className="text-xs">
-                      {lead.phone || "Missing Number"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-600">
-                    <Mail className="h-3 w-3 opacity-50" />
-                    <span className="text-xs font-medium">
-                      {lead.email || "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </TableCell>
-              {lead.isEnquiry === false && (
+            </TableRow>
+          ) : (
+            data.map((lead) => (
+              <TableRow
+                key={lead.id}
+                onClick={() => setSelectedLead(lead)}
+                className="group hover:bg-slate-50/80 transition-all cursor-pointer border-b border-slate-100"
+              >
                 <TableCell className="py-4">
-                  <StatusBadge
-                    id={lead.id}
-                    currentStatus={lead.status}
-                    statusColumns={statusColumns}
-                    onStatusSelect={(statusId) => {
-                      const targetStatus = statusColumns.find(
-                        (s: any) => s.id === statusId,
-                      );
-                      setPendingMove({ lead, status: targetStatus });
-                    }}
-                  />
-                </TableCell>
-              )}
-              <TableCell className="py-4 font-mono text-sm font-bold text-slate-700 text-left">
-                <span className="text-[10px] text-slate-400 mr-1 italic">
-                  AED
-                </span>
-                {lead.value.toLocaleString()}
-              </TableCell>
-              {currentUserRole !== "SALES_EXECUTIVE" && (
-                <TableCell className="py-4">
-                  {lead.assignedTo ? (
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200">
-                        {lead.assignedTo.name?.charAt(0)}
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-700">
-                        {lead.assignedTo.name}
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                      {lead.clientCompany.charAt(0)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {" "}
+                        {lead.clientCompany || "No Company"}
+                      </span>
+                      <span className="inline-flex max-w-max mt-1 items-center gap-1.5 px-[1px ]py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase tracking-wide border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-600 transition-all">
+                        <span className=" h-1.5 rounded-full bg-blue-500"></span>
+                        Channel • {lead.source || "No Source"}
+                        <span></span>
                       </span>
                     </div>
-                  ) : (
-                    <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-md italic">
-                      Unassigned
-                    </span>
-                  )}
+                  </div>
                 </TableCell>
-              )}
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
-  </div>
-);
+                <TableCell className="py-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <User2 className="h-3 w-3 opacity-50" />
+                      <span className="text-xs font-medium">{lead.name}</span>
+                    </div>
+                    <div
+                      className={`flex items-center gap-1.5 ${lead.phone ? "text-slate-600" : "text-amber-500 font-bold"}`}
+                    >
+                      <Phone className="h-3 w-3 opacity-50" />
+                      <span className="text-xs">
+                        {lead.phone || "Missing Number"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Mail className="h-3 w-3 opacity-50" />
+                      <span className="text-xs font-medium">
+                        {lead.email || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </TableCell>
+                {lead.isEnquiry === false && (
+                  <TableCell className="py-4">
+                    <StatusBadge
+                      id={lead.id}
+                      currentStatus={lead.status}
+                      statusColumns={statusColumns}
+                      onStatusSelect={(statusId) => {
+                        const targetStatus = statusColumns.find(
+                          (s: any) => s.id === statusId,
+                        );
+                        setPendingMove({ lead, status: targetStatus });
+                      }}
+                    />
+                  </TableCell>
+                )}
+                <TableCell className="py-4 font-mono text-sm font-bold text-slate-700 text-left">
+                  <span className="text-[10px] text-slate-400 mr-1 italic">
+                    AED
+                  </span>
+                  {lead.value.toLocaleString()}
+                </TableCell>
+                {currentUserRole !== "SALES_EXECUTIVE" && (
+                  <TableCell className="py-4">
+                    {lead.assignedTo ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-200">
+                          {lead.assignedTo.name?.charAt(0)}
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-700">
+                          {lead.assignedTo.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-md italic">
+                        Unassigned
+                      </span>
+                    )}
+                  </TableCell>
+                )}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <EnquiryFilters onSearch={setSearchTerm} total={searchedLeads.length} />
+        <EnquiryFilters onSearch={setSearchTerm} total={totalCount} />
 
         <Tabs defaultValue="enquiries" className="w-full">
           <TabsList className="grid max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
@@ -216,7 +229,7 @@ const LeadTable = ({
                 Enquiries
               </span>
               <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
-                {enquiries.length}
+                {totalCount}
               </span>
             </TabsTrigger>
             <TabsTrigger
@@ -240,6 +253,58 @@ const LeadTable = ({
             <LeadTable data={activeLeads} isEnquiry={false} />
           </TabsContent>
         </Tabs>
+        <div className="flex items-center justify-between border-t border-slate-200 pt-4 px-2">
+          <div className="text-xs text-slate-500 font-medium">
+            Showing{" "}
+            <span className="font-bold text-slate-900">
+              {(currentPage - 1) * pageSize + 1}
+            </span>{" "}
+            -{" "}
+            <span className="font-bold text-slate-900">
+              {Math.min(currentPage * pageSize, totalCount)}
+            </span>{" "}
+            of (<span className="">{totalCount}</span>{" "}
+            results)
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Optional: Only show first few and last few if totalPages is large
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
+                      currentPage === pageNum
+                        ? "bg-slate-900 text-white shadow-md"
+                        : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {selectedLead && (

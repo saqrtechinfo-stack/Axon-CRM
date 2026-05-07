@@ -4,22 +4,41 @@ import { EnquiryTableWrapper } from "@/components/EnquiryTableWrapper";
 import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
 
-export const revalidate = 30;
 
-export default async function EnquiriesPage() {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export default async function EnquiriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>; // Promise wrapper
+}) {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // 1. Get User and verify existence
+  //   Define pagination constants
+  const params = await searchParams;
+  const { from, to } = params;
+  const PAGE_SIZE = 50;
+  const currentPage = Math.max(1, Number(params.page) || 1);
+
+  //  Get User and verify existence
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
-    select: { id: true, companyId: true, role: true },
+    select: { id: true, companyId: true, role: true, name: true },
   });
 
   if (!dbUser) redirect("/sign-in");
 
   // 2. Define the leads visibility filter
-  const whereClause: any = { companyId: dbUser.companyId };
+ const whereClause: any = {
+   companyId: dbUser.companyId,
+   // ADD THIS: Date Range Filter
+   createdAt: {
+     ...(from ? { gte: new Date(from) } : {}),
+     ...(to ? { lte: new Date(new Date(to).setHours(23, 59, 59, 999)) } : {}),
+   },
+ };
 
   if (dbUser.role === "SALES_EXECUTIVE") {
     // Executives see leads specifically assigned to them or those they own
@@ -27,25 +46,25 @@ export default async function EnquiriesPage() {
   } else if (dbUser.role === "MANAGER") {
     // Managers see their own leads, team leads, and unassigned enquiries
     whereClause.OR = [
-      { assignedToId: dbUser.id },
-      { ownerId: dbUser.id },
+      { assignedToId: dbUser.id }, // Sunil's own assigned leads
+      { ownerId: dbUser.id }, // Sunil's own created leads
       {
         assignedTo: {
-          managerId: dbUser.id,
+          managerId: dbUser.id, // Leads assigned to anyone reporting to Sunil (Rithik)
         },
       },
       {
         owner: {
-          managerId: dbUser.id,
+          managerId: dbUser.id, // Leads owned by anyone reporting to Sunil (Rithik)
         },
       },
-      { assignedToId: null },
+      { assignedToId: null }, // Fresh enquiries (unassigned)
     ];
   }
 
   // 3. Optimized Parallel Fetching
-  const [categories, products, staff, leads, statusColumns] = await Promise.all(
-    [
+  const [categories, products, staff, leads, statusColumns, totalLeadsCount] =
+    await Promise.all([
       prisma.category.findMany({
         where: { companyId: dbUser.companyId },
         select: { id: true, name: true },
@@ -76,22 +95,31 @@ export default async function EnquiriesPage() {
           status: true,
           assignedTo: {
             select: {
+              id: true,
               name: true,
               imageUrl: true,
+              managerId: true, // Included for verification
             },
           },
-          owner: { select: { name: true } },
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              managerId: true,
+            },
+          },
           products: true,
         },
         orderBy: { createdAt: "desc" },
-        take: 50,
+        take: PAGE_SIZE, // Limit to 50
+        skip: (currentPage - 1) * PAGE_SIZE, // Skip based on page
       }),
       prisma.leadStatus.findMany({
         where: { companyId: dbUser.companyId },
         orderBy: { order: "asc" },
       }),
-    ],
-  );
+      prisma.lead.count({ where: whereClause }),
+    ]);
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -119,6 +147,9 @@ export default async function EnquiriesPage() {
         currentUserRole={dbUser.role}
         categories={categories}
         products={products}
+        totalCount={totalLeadsCount}
+        currentPage={currentPage}
+        pageSize={PAGE_SIZE}
       />
     </div>
   );
