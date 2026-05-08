@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
-
 export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -30,23 +29,23 @@ export async function createLead(formData: FormData) {
   const productIdsRaw = formData.get("productIds") as string;
   const productIds: string[] = JSON.parse(productIdsRaw || "[]");
 
-const isEmpty = (val: string | null) => !val || !val.trim();
+  const isEmpty = (val: string | null) => !val || !val.trim();
 
-if (isEnquiry) {
-  if (isEmpty(name) || isEmpty(phone)) {
-    return {
-      success: false,
-      error: "Name and Phone are required for enquiries.",
-    };
+  if (isEnquiry) {
+    if (isEmpty(name) || isEmpty(phone)) {
+      return {
+        success: false,
+        error: "Name and Phone are required for enquiries.",
+      };
+    }
+  } else {
+    if (isEmpty(name) || isEmpty(phone) || isEmpty(email)) {
+      return {
+        success: false,
+        error: "Name, Phone and Email are required for leads.",
+      };
+    }
   }
-} else {
-  if (isEmpty(name) || isEmpty(phone) || isEmpty(email)) {
-    return {
-      success: false,
-      error: "Name, Phone and Email are required for leads.",
-    };
-  }
-}
 
   // 2. Resolve Assignment (Keep current logic)
   let finalAssignedId = assignedToId === "none" ? null : assignedToId;
@@ -99,7 +98,6 @@ if (isEnquiry) {
   }
 }
 
-
 export async function convertEnquiryToLead(leadId: string) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -135,7 +133,6 @@ export async function convertEnquiryToLead(leadId: string) {
   }
 }
 
-
 // lead-actions.ts
 export async function updateLeadDetails(leadId: string, data: any) {
   try {
@@ -149,7 +146,7 @@ export async function updateLeadDetails(leadId: string, data: any) {
         email: data.email,
         phone: data.phone,
         designation: data.designation,
-        notes:data.notes,
+        notes: data.notes,
         clientCompany: data.clientCompany,
         value: parseFloat(data.value) || 0,
         assignedToId: data.assignedToId || null,
@@ -190,9 +187,8 @@ export async function updateLeadStatus(
 
     if (!newStatus) return { success: false, error: "Status not found" };
 
-    // 2. Identify if this is a "Lost" transition
-    // In your schema: isClosing = true AND isWon = false means it's LOST
     const isLost = newStatus.isClosing && !newStatus.isWon;
+    const isWon = newStatus.isWon;
 
     await prisma.lead.update({
       where: {
@@ -201,12 +197,10 @@ export async function updateLeadStatus(
       },
       data: {
         statusId: statusId,
-        // CRM LOGIC: If lost, move back to enquiry and save reason
-        isEnquiry: isLost ? true : undefined,
         lossReason: isLost ? remarks : null,
         activities: {
           create: {
-            type: isLost ? "LEAD_LOST" : "STATUS_CHANGE",
+            type: isWon ? "LEAD_WON" : isLost ? "LEAD_LOST" : "STATUS_CHANGE",
             content: `Moved to ${newStatus.label}`,
             remarks: remarks || "Status updated via Board.",
             userId: dbUser.id,
@@ -309,8 +303,7 @@ export async function updateLeadFollowUp(
   revalidatePath("/enquiries");
 }
 
-
-// Assign Lead. 
+// Assign Lead.
 export async function assignLead(leadId: string, employeeUserId: string) {
   const { userId: clerkId } = await auth();
   if (!clerkId) throw new Error("Unauthorized");

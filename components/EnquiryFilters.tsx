@@ -3,15 +3,31 @@
 import { Input } from "@/components/ui/input";
 import { Search, CalendarDays, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useDebouncedCallback } from "use-debounce"; // npm i use-debounce
 
 interface FilterProps {
-  onSearch: (term: string) => void;
   total: number;
 }
 
-export function EnquiryFilters({ onSearch, total }: FilterProps) {
+export function EnquiryFilters({ total }: FilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [searchValue, setSearchValue] = useState(
+    searchParams.get("search") || "",
+  );
+
+  // Debounce so we don't fire on every keystroke
+  const handleSearch = useDebouncedCallback((value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set("search", value);
+    } else {
+      params.delete("search");
+    }
+    params.set("page", "1"); // Always reset to page 1 on search
+    router.push(`?${params.toString()}`);
+  }, 400);
 
   const handleDateChange = (type: "from" | "to", value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -20,16 +36,23 @@ export function EnquiryFilters({ onSearch, total }: FilterProps) {
     } else {
       params.delete(type);
     }
-    params.set("page", "1"); // Reset to page 1 on filter change
+    params.set("page", "1");
     router.push(`?${params.toString()}`);
   };
 
-  const clearDates = () => {
+  const clearAll = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("from");
     params.delete("to");
+    params.delete("search");
+    setSearchValue("");
     router.push(`?${params.toString()}`);
   };
+
+  const hasFilters =
+    searchParams.get("from") ||
+    searchParams.get("to") ||
+    searchParams.get("search");
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border border-slate-200 mb-6 shadow-sm">
@@ -40,12 +63,16 @@ export function EnquiryFilters({ onSearch, total }: FilterProps) {
           <Input
             placeholder="Search leads..."
             className="pl-10 bg-slate-50 border-slate-200"
-            onChange={(e) => onSearch(e.target.value)}
+            value={searchValue}
+            onChange={(e) => {
+              setSearchValue(e.target.value);
+              handleSearch(e.target.value);
+            }}
           />
         </div>
 
         {/* Date Inputs */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row items-center gap-2">
           <div className="relative">
             <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <Input
@@ -65,9 +92,9 @@ export function EnquiryFilters({ onSearch, total }: FilterProps) {
               className="pl-9 text-xs bg-slate-50 border-slate-200 h-9 w-[140px]"
             />
           </div>
-          {(searchParams.get("from") || searchParams.get("to")) && (
-            <button 
-              onClick={clearDates}
+          {hasFilters && (
+            <button
+              onClick={clearAll}
               className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
             >
               <X className="h-4 w-4" />

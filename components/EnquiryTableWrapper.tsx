@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Phone, Inbox, Target, User2 } from "lucide-react";
+import { Mail, Phone, Inbox, Target, User2, XCircle, Trophy } from "lucide-react";
 import { StatusChangeModal } from "./StatusChangeModal";
 
 export function EnquiryTableWrapper({
@@ -22,14 +22,17 @@ export function EnquiryTableWrapper({
   statusColumns,
   currentUserRole,
   availableStaff,
-  categories, 
+  categories,
   products,
-  totalCount, 
+  totalCount,
   totalEnquiry,
   totalLeads,
   currentPage,
   pageSize,
-  activeTab
+  activeTab,
+  totalWon,
+  totalLost
+
 }: {
   initialLeads: any[];
   statusColumns: any[];
@@ -37,13 +40,18 @@ export function EnquiryTableWrapper({
   currentUserRole: string;
   categories: any[];
   products: any[];
+  totalEnquiry:number;
+  totalLeads:number;
   totalCount: number;
   currentPage: number;
   pageSize: number;
+  totalWon: number;
+  totalLost: number;
+  activeTab:string;
 }) {
   const router = useRouter();
   const totalPages = Math.ceil(totalCount / pageSize);
-  const [searchTerm, setSearchTerm] = useState("");
+  // const [searchTerm, setSearchTerm] = useState("");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [pendingMove, setPendingMove] = useState<{
     lead: any;
@@ -65,20 +73,9 @@ export function EnquiryTableWrapper({
     }
   }, [initialLeads]);
 
-  // 1. Filter by search term first
-  const searchedLeads = initialLeads.filter((lead) => {
-    const searchStr = searchTerm.toLowerCase();
-    return (
-      lead.name.toLowerCase().includes(searchStr) ||
-      lead.email.toLowerCase().includes(searchStr) ||
-      (lead.clientCompany &&
-        lead.clientCompany.toLowerCase().includes(searchStr))
-    );
-  });
-
   // 2. Split into Enquiries and Leads based on schema boolean
-  const enquiries = searchedLeads.filter((l) => l.isEnquiry);
-  const activeLeads = searchedLeads.filter((l) => !l.isEnquiry);
+  const enquiries = initialLeads.filter((l) => l.isEnquiry);
+  const activeLeads = initialLeads.filter((l) => !l.isEnquiry);
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -228,7 +225,7 @@ export function EnquiryTableWrapper({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <EnquiryFilters onSearch={setSearchTerm} total={totalCount} />
+        <EnquiryFilters total={totalCount} />
 
         <Tabs
           defaultValue="enquiries"
@@ -236,16 +233,16 @@ export function EnquiryTableWrapper({
           value={activeTab}
           onValueChange={handleTabChange}
         >
-          <TabsList className="grid max-w-md grid-cols-2 h-12 bg-slate-100 p-1 rounded-xl">
+          <TabsList className="grid max-w-2xl grid-cols-2 md:grid-cols-4 mb-5 md:mb-0 h-12 bg-slate-100 p-1 rounded-xl">
             <TabsTrigger
               value="enquiries"
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
             >
-              <Inbox className="h-4 w-4" />
+              <Inbox className="h-4 w-4 text-orange-500" />
               <span className="font-bold text-xs uppercase tracking-tight">
                 Enquiries
               </span>
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
+              <span className="ml-1 px-1.5 py-0.5  rounded text-[10px] bg-orange-100 text-orange-700">
                 {totalEnquiry}
               </span>
             </TabsTrigger>
@@ -253,21 +250,53 @@ export function EnquiryTableWrapper({
               value="leads"
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
             >
-              <Target className="h-4 w-4" />
+              <Target className="h-4 w-4 text-blue-500" />
               <span className="font-bold text-xs uppercase tracking-tight">
                 Active Leads
               </span>
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-200 rounded text-[10px]">
+              <span className="ml-1 px-1.5 py-0.5  rounded text-[10px] bg-blue-100 text-blue-700">
                 {totalLeads}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="won"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
+            >
+              <Trophy className="h-4 w-4 text-emerald-500" />
+              <span className="font-bold text-xs uppercase tracking-tight">
+                Won
+              </span>
+              <span className="ml-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px]">
+                {totalWon}
+              </span>
+            </TabsTrigger>
+
+            {/* NEW */}
+            <TabsTrigger
+              value="lost"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2"
+            >
+              <XCircle className="h-4 w-4 text-red-400" />
+              <span className="font-bold text-xs uppercase tracking-tight">
+                Lost
+              </span>
+              <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px]">
+                {totalLost}
               </span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="enquiries" className="mt-6 focus-visible:ring-0">
-            <LeadTable data={enquiries} isEnquiry />
+          <TabsContent value="enquiries">
+            <LeadTable data={initialLeads} isEnquiry />
           </TabsContent>
-          <TabsContent value="leads" className="mt-6 focus-visible:ring-0">
-            <LeadTable data={activeLeads} isEnquiry={false} />
+          <TabsContent value="leads">
+            <LeadTable data={initialLeads} />
+          </TabsContent>
+          <TabsContent value="won">
+            <LeadTable data={initialLeads} showValue />
+          </TabsContent>
+          <TabsContent value="lost">
+            <LeadTable data={initialLeads} />
           </TabsContent>
         </Tabs>
         <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">

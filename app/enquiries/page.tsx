@@ -4,7 +4,6 @@ import { EnquiryTableWrapper } from "@/components/EnquiryTableWrapper";
 import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
 
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -17,10 +16,36 @@ export default async function EnquiriesPage({
   if (!userId) redirect("/sign-in");
 
   const params = await searchParams;
-  const { from, to } = params;
+  const { from, to, search } = params;
 
   const activeTab = params.tab || "enquiries";
-  const isEnquiryMode = activeTab === "enquiries";
+  // const isEnquiryMode = activeTab === "enquiries";
+  const getTabWhere = (tab: string) => {
+    switch (tab) {
+      case "enquiries":
+        return { isEnquiry: true };
+      case "leads":
+        return {
+          isEnquiry: false,
+          status: { isClosing: false, isWon: false },
+        };
+      case "won":
+        return {
+          isEnquiry: false,
+          status: { isWon: true },
+        };
+      case "lost":
+        return {
+          isEnquiry: false,
+          status: {
+            isClosing: true,
+            isWon: false,
+          },
+        };
+      default:
+        return { isEnquiry: true };
+    }
+  };
 
   const PAGE_SIZE = 50;
   const currentPage = Math.max(1, Number(params.page) || 1);
@@ -31,7 +56,6 @@ export default async function EnquiriesPage({
   });
 
   if (!dbUser) redirect("/sign-in");
-
 
   // Check if this user is a manager (has subordinates)
   const subordinates = await prisma.user.findMany({
@@ -44,6 +68,16 @@ export default async function EnquiriesPage({
   // Build whereClause
   const baseWhere: any = {
     companyId: dbUser.companyId,
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { email: { contains: search, mode: "insensitive" } },
+            { clientCompany: { contains: search, mode: "insensitive" } },
+            { phone: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
     ...(from || to
       ? {
           createdAt: {
@@ -73,10 +107,9 @@ export default async function EnquiriesPage({
     baseWhere.OR = [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }];
   }
 
-
   const dataFetchWhere = {
     ...baseWhere,
-    isEnquiry: isEnquiryMode,
+    ...getTabWhere(activeTab),
   };
 
   // Step 3: All your existing parallel fetching stays the same
@@ -89,6 +122,8 @@ export default async function EnquiriesPage({
     totalLeadsCount,
     totalEnquiry,
     totalLeads,
+    totalWon,
+    totalLost,
   ] = await Promise.all([
     prisma.category.findMany({
       where: { companyId: dbUser.companyId },
@@ -130,16 +165,25 @@ export default async function EnquiriesPage({
 
     prisma.lead.count({ where: baseWhere }),
 
+    prisma.lead.count({ where: { ...baseWhere, isEnquiry: true } }),
     prisma.lead.count({
-      where: { ...baseWhere, isEnquiry: true },
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+        status: { isClosing: false, isWon: false },
+      },
     }),
-
-    // Fetch Total Active Leads Count
     prisma.lead.count({
-      where: { ...baseWhere, isEnquiry: false },
-    }),
+      where: { ...baseWhere, isEnquiry: false, status: { isWon: true } },
+    }), //Won
+    prisma.lead.count({
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+        status: { isClosing: true, isWon: false },
+      },
+    }), //Lost
   ]);
-    
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -173,6 +217,8 @@ export default async function EnquiriesPage({
         totalLeads={totalLeads}
         totalEnquiry={totalEnquiry}
         activeTab={activeTab}
+        totalWon={totalWon}
+        totalLost={totalLost}
       />
     </div>
   );

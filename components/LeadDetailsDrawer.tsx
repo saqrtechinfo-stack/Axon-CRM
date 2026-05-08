@@ -200,7 +200,7 @@ export function LeadDetailsDrawer({
               {/* Assignment Section */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-                  <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-100">
+                  <div className="h-10 bg-[#ff9e7d] text-black w-10 rounded-xl  flex items-center justify-center  overflow-hidden border border-slate-100">
                     {lead.assignedTo?.imageUrl ? (
                       <img
                         src={lead.assignedTo.imageUrl}
@@ -221,7 +221,7 @@ export function LeadDetailsDrawer({
                       onValueChange={handleAssign}
                       defaultValue={lead.assignedToId || ""}
                     >
-                      <SelectTrigger className="h-6 border-none p-0 bg-transparent font-bold text-xs text-blue-600 shadow-none focus:ring-0">
+                      <SelectTrigger className="h-6 border-none p-0 bg-transparent font-bold text-xs text-black-600 shadow-none focus:ring-0">
                         <SelectValue placeholder="Select Staff" />
                       </SelectTrigger>
                       <SelectContent>
@@ -322,7 +322,7 @@ export function LeadDetailsDrawer({
 
               {/* Activity Log */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col md:flex-row items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <History className="h-4 w-4 text-slate-400" />
                     <h3 className="text-xs font-black uppercase text-slate-500 tracking-[0.15em]">

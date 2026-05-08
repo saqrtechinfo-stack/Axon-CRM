@@ -197,13 +197,13 @@ export function EditLeadForm({
 
             <Select onValueChange={addProduct} disabled={!selectedCategoryId}>
               <SelectTrigger className="bg-white border-slate-200 text-xs">
-                <SelectValue placeholder="Add Product" />
+                <SelectValue className="uppercase" placeholder="Add Product" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="uppercase">
                 {products
                   .filter((p) => p.categoryId === selectedCategoryId)
                   .map((prod) => (
-                    <SelectItem key={prod.id} value={prod.id}>
+                    <SelectItem className="uppercase" key={prod.id} value={prod.id}>
                       {prod.name}
                     </SelectItem>
                   ))}
