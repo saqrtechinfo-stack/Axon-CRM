@@ -14,7 +14,8 @@ import {
   Package2, // Added for Inventory
   Briefcase, // Added for Sales/Quotes
   UserCheck, // Better icon for Staff
-  Layers, // Added for Categories
+  Layers,
+  CalendarClock, // Added for Categories
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -71,6 +72,13 @@ const navigationGroups = [
         icon: Briefcase,
         href: "/quotations",
         roles: ["ADMIN", "MANAGER", "SALES_EXECUTIVE"],
+      },
+      {
+        label: "Follow-ups",
+        icon: CalendarClock,
+        href: "/follow-ups",
+        roles: ["ADMIN", "SUPER_ADMIN", "SALES_EXECUTIVE"],
+        // You can even add a small badge here later for the count of Today's tasks
       },
     ],
   },

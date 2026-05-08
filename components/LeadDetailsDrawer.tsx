@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { assignLead, convertEnquiryToLead } from "@/actions/lead-actions";
 import useSWR from "swr";
 import { Badge } from "./ui/badge";
+import { LeadFollowUps } from "./LeadFollowUps";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -73,6 +74,10 @@ export function LeadDetailsDrawer({
     fetcher,
   );
 
+  const { data: followUps = [], mutate: mutateFollowUps } = useSWR(
+    isOpen && lead?.id ? `/api/leads/${lead.id}/followups` : null,
+    fetcher,
+  );
   if (!lead) return null;
 
   const handleAssign = async (employeeId: string) => {
@@ -269,7 +274,14 @@ export function LeadDetailsDrawer({
                   )}
                 </div>
               </div>
-
+              <LeadFollowUps
+                leadId={lead.id}
+                followUps={followUps}
+                onUpdate={() => {
+                  mutateFollowUps();
+                  onUpdate();
+                }}
+              />
               {/* Pipeline Stepper - Hidden for Enquiries */}
               {!lead.isEnquiry && statusColumns.length > 0 && (
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">

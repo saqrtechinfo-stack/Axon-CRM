@@ -67,6 +67,7 @@ model User {
   subordinates      User[]              @relation("ReportsTo")
   invitations       CompanyInvitation[] @relation("UserToInvitation")
   createdQuotations Quotation[]         @relation("QuotationCreator")
+  followUps    LeadFollowUp[]
 }
 
 model Employee {
@@ -143,6 +144,7 @@ model Lead {
   isEnquiry        Boolean   @default(true)
   lossReason       String?
   natureOfBusiness String?
+  followUps    LeadFollowUp[]
 
   // Relations
   company          Company     @relation(fields: [companyId], references: [id])
@@ -164,7 +166,24 @@ model Lead {
   @@index([companyId])
   @@index([statusId])
 }
+model LeadFollowUp {
+  id          String    @id @default(cuid())
+  leadId      String
+  userId      String    // who scheduled it
+  scheduledAt DateTime  // the follow-up date & time
+  notes       String?   // what to follow up about
+  isDone      Boolean   @default(false)
+  doneAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
+  lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([scheduledAt]) // for querying upcoming follow-ups
+}
 model Task {
   id          String   @id @default(cuid())
   content     String

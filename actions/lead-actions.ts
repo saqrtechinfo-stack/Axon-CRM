@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { auth } from "@clerk/nextjs/server";
 
+// Create lead -------------------->
 export async function createLead(formData: FormData) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -98,6 +99,7 @@ export async function createLead(formData: FormData) {
   }
 }
 
+// convertEnquiryToLead -------------------->
 export async function convertEnquiryToLead(leadId: string) {
   const { userId } = await auth();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -133,7 +135,7 @@ export async function convertEnquiryToLead(leadId: string) {
   }
 }
 
-// lead-actions.ts
+// updateLeadDetails -------------------->
 export async function updateLeadDetails(leadId: string, data: any) {
   try {
     // Parse the product IDs from the stringified array
@@ -164,6 +166,7 @@ export async function updateLeadDetails(leadId: string, data: any) {
   }
 }
 
+// updateLeadStatus -------------------->
 export async function updateLeadStatus(
   leadId: string,
   statusId: string,
@@ -220,7 +223,7 @@ export async function updateLeadStatus(
   }
 }
 
-// Separate Action for just adding a Remark
+// Add Remark -------------------->
 export async function addLeadRemark(leadId: string, remarks: string) {
   try {
     const { userId } = await auth();
@@ -264,6 +267,8 @@ export async function addLeadRemark(leadId: string, remarks: string) {
     return { success: false, error: "Database save failed" };
   }
 }
+
+// update Lead Notes -------------------->
 export async function updateLeadNotes(id: string, notes: string) {
   try {
     await prisma.lead.update({
@@ -278,6 +283,8 @@ export async function updateLeadNotes(id: string, notes: string) {
   }
 }
 
+
+// updateLeadFollowUp -------------------->
 export async function updateLeadFollowUp(
   id: string,
   date: Date,
@@ -303,7 +310,7 @@ export async function updateLeadFollowUp(
   revalidatePath("/enquiries");
 }
 
-// Assign Lead.
+// Assign Lead---------------------->
 export async function assignLead(leadId: string, employeeUserId: string) {
   const { userId: clerkId } = await auth();
   if (!clerkId) throw new Error("Unauthorized");
@@ -341,4 +348,101 @@ export async function assignLead(leadId: string, employeeUserId: string) {
 
   revalidatePath("/enquiries");
   return { success: true };
+}
+
+// Create a new follow-up
+export async function createFollowUp(
+  leadId: string,
+  scheduledAt: Date,
+  notes: string,
+) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+  if (!dbUser) return { success: false, error: "User not found" };
+
+  try {
+    await prisma.$transaction([
+      // Create the follow-up record
+      prisma.leadFollowUp.create({
+        data: {
+          leadId,
+          userId: dbUser.id,
+          scheduledAt,
+          notes,
+        },
+      }),
+      // Also log it as an activity
+      prisma.leadActivity.create({
+        data: {
+          leadId,
+          userId: dbUser.id,
+          type: "FOLLOW_UP_SCHEDULED",
+          content: `Follow-up scheduled for ${scheduledAt.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}`,
+          remarks: notes,
+        },
+      }),
+      // Keep Lead.nextFollowUp in sync for quick access
+      prisma.lead.update({
+        where: { id: leadId },
+        data: { nextFollowUp: scheduledAt },
+      }),
+    ]);
+
+    revalidatePath("/enquiries");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "Failed to schedule follow-up" };
+  }
+}
+
+// Mark a follow-up as done
+export async function markFollowUpDone(followUpId: string) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+  if (!dbUser) return { success: false, error: "User not found" };
+
+  try {
+    const followUp = await prisma.leadFollowUp.update({
+      where: { id: followUpId },
+      data: { isDone: true, doneAt: new Date() },
+    });
+
+    // Log activity
+    await prisma.leadActivity.create({
+      data: {
+        leadId: followUp.leadId,
+        userId: dbUser.id,
+        type: "FOLLOW_UP_DONE",
+        content: "Follow-up marked as completed",
+      },
+    });
+
+    revalidatePath("/enquiries");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to mark done" };
+  }
+}
+
+// Delete a follow-up
+export async function deleteFollowUp(followUpId: string) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    await prisma.leadFollowUp.delete({ where: { id: followUpId } });
+    revalidatePath("/enquiries");
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete follow-up" };
+  }
 }
