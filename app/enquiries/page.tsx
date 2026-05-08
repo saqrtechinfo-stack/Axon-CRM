@@ -10,30 +10,44 @@ export const revalidate = 0;
 export default async function EnquiriesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    from?: string;
+    to?: string;
+    search?: string;
+    tab?: string;
+  }>;
 }) {
   const { userId } = await auth();
+
   if (!userId) redirect("/sign-in");
 
   const params = await searchParams;
+
   const { from, to, search } = params;
 
   const activeTab = params.tab || "enquiries";
-  // const isEnquiryMode = activeTab === "enquiries";
+
+  const PAGE_SIZE = 50;
+  const currentPage = Math.max(1, Number(params.page) || 1);
+
   const getTabWhere = (tab: string) => {
     switch (tab) {
       case "enquiries":
         return { isEnquiry: true };
+
       case "leads":
         return {
           isEnquiry: false,
           status: { isClosing: false, isWon: false },
         };
+
       case "won":
         return {
           isEnquiry: false,
           status: { isWon: true },
         };
+
       case "lost":
         return {
           isEnquiry: false,
@@ -42,77 +56,125 @@ export default async function EnquiriesPage({
             isWon: false,
           },
         };
+
       default:
         return { isEnquiry: true };
     }
   };
 
-  const PAGE_SIZE = 50;
-  const currentPage = Math.max(1, Number(params.page) || 1);
-
   const dbUser = await prisma.user.findUnique({
     where: { clerkId: userId },
-    select: { id: true, companyId: true, role: true, name: true },
+    select: {
+      id: true,
+      companyId: true,
+      role: true,
+      name: true,
+    },
   });
 
   if (!dbUser) redirect("/sign-in");
 
-  // Check if this user is a manager (has subordinates)
+  // Check subordinates
   const subordinates = await prisma.user.findMany({
     where: { managerId: dbUser.id },
     select: { id: true },
   });
+
   const subordinateIds = subordinates.map((s) => s.id);
+
   const isManager = subordinateIds.length > 0;
 
-  // Build whereClause
+  /**
+   * SEARCH FILTER
+   */
+  const searchFilter = search
+    ? {
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            email: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            clientCompany: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            phone: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+        ],
+      }
+    : {};
+
+  /**
+   * BASE WHERE
+   */
   const baseWhere: any = {
     companyId: dbUser.companyId,
-    ...(search
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-            { clientCompany: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search, mode: "insensitive" } },
-          ],
-        }
-      : {}),
+
     ...(from || to
       ? {
           createdAt: {
             ...(from ? { gte: new Date(from) } : {}),
+
             ...(to
-              ? { lte: new Date(new Date(to).setHours(23, 59, 59, 999)) }
+              ? {
+                  lte: new Date(new Date(to).setHours(23, 59, 59, 999)),
+                }
               : {}),
           },
         }
       : {}),
+
+    AND: [searchFilter],
   };
 
-  // Now use isManager instead of role check
+  /**
+   * ROLE / PERMISSION FILTERS
+   */
   if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
-    // See everything — no OR needed
+    // Admin sees everything
   } else if (isManager) {
-    // Manager-like visibility
-    baseWhere.OR = [
-      { assignedToId: dbUser.id },
-      { ownerId: dbUser.id },
-      { assignedToId: { in: subordinateIds } },
-      { ownerId: { in: subordinateIds } },
-      { assignedToId: null },
-    ];
+    baseWhere.AND.push({
+      OR: [
+        { assignedToId: dbUser.id },
+        { ownerId: dbUser.id },
+
+        { assignedToId: { in: subordinateIds } },
+        { ownerId: { in: subordinateIds } },
+
+        { assignedToId: null },
+      ],
+    });
   } else {
-    // Regular sales executive
-    baseWhere.OR = [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }];
+    baseWhere.AND.push({
+      OR: [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }],
+    });
   }
 
+  /**
+   * FINAL FILTER
+   */
   const dataFetchWhere = {
     ...baseWhere,
     ...getTabWhere(activeTab),
   };
 
-  // Step 3: All your existing parallel fetching stays the same
+  /**
+   * FETCH EVERYTHING
+   */
   const [
     categories,
     products,
@@ -127,62 +189,130 @@ export default async function EnquiriesPage({
   ] = await Promise.all([
     prisma.category.findMany({
       where: { companyId: dbUser.companyId },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+      },
     }),
+
     prisma.product.findMany({
       where: { companyId: dbUser.companyId },
-      select: { id: true, name: true, categoryId: true },
+      select: {
+        id: true,
+        name: true,
+        categoryId: true,
+      },
     }),
+
     prisma.user.findMany({
       where: {
         companyId: dbUser.companyId,
+
         ...(dbUser.role !== "ADMIN" && dbUser.role !== "SUPER_ADMIN"
-          ? { OR: [{ id: dbUser.id }, { managerId: dbUser.id }] }
+          ? {
+              OR: [{ id: dbUser.id }, { managerId: dbUser.id }],
+            }
           : {}),
       },
-      select: { id: true, name: true, role: true, imageUrl: true },
+
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        imageUrl: true,
+      },
     }),
+
     prisma.lead.findMany({
       where: dataFetchWhere,
+
       include: {
         status: true,
+
         assignedTo: {
-          select: { id: true, name: true, imageUrl: true, managerId: true },
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            managerId: true,
+          },
         },
+
         owner: {
-          select: { id: true, name: true, managerId: true },
+          select: {
+            id: true,
+            name: true,
+            managerId: true,
+          },
         },
+
         products: true,
       },
-      orderBy: { createdAt: "desc" },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+
       take: PAGE_SIZE,
+
       skip: (currentPage - 1) * PAGE_SIZE,
     }),
+
     prisma.leadStatus.findMany({
-      where: { companyId: dbUser.companyId },
-      orderBy: { order: "asc" },
+      where: {
+        companyId: dbUser.companyId,
+      },
+
+      orderBy: {
+        order: "asc",
+      },
     }),
 
-    prisma.lead.count({ where: baseWhere }),
+    prisma.lead.count({
+      where: baseWhere,
+    }),
 
-    prisma.lead.count({ where: { ...baseWhere, isEnquiry: true } }),
+    prisma.lead.count({
+      where: {
+        ...baseWhere,
+        isEnquiry: true,
+      },
+    }),
+
     prisma.lead.count({
       where: {
         ...baseWhere,
         isEnquiry: false,
-        status: { isClosing: false, isWon: false },
+
+        status: {
+          isClosing: false,
+          isWon: false,
+        },
       },
     }),
-    prisma.lead.count({
-      where: { ...baseWhere, isEnquiry: false, status: { isWon: true } },
-    }), //Won
+
     prisma.lead.count({
       where: {
         ...baseWhere,
         isEnquiry: false,
-        status: { isClosing: true, isWon: false },
+
+        status: {
+          isWon: true,
+        },
       },
-    }), //Lost
+    }),
+
+    prisma.lead.count({
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+
+        status: {
+          isClosing: true,
+          isWon: false,
+        },
+      },
+    }),
   ]);
 
   return (
@@ -192,6 +322,7 @@ export default async function EnquiriesPage({
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
             Enquiries
           </h1>
+
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
             Saqr Tech Lead Pipeline
           </p>
