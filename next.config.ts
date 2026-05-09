@@ -1,16 +1,22 @@
 import type { NextConfig } from "next";
+import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
-  /* This is critical for Prisma to work in Next.js 15 on Netlify */
+  /* Prisma support for Netlify */
   serverExternalPackages: ["@prisma/client"],
 
-  // This helps prevent build-time crashes if there are minor type mismatches
+  /* Ignore minor build issues */
   typescript: {
     ignoreBuildErrors: true,
   },
+
   eslint: {
     ignoreDuringBuilds: true,
   },
 };
 
-export default nextConfig;
+export default withPWA({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+})(nextConfig);

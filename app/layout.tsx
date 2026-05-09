@@ -14,7 +14,26 @@ import Loading from "./loading";
 const inter = Inter({ subsets: ["latin"] });
 
 export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "Axon CRM",
 
+  description: "CRM system for business management",
+
+  manifest: "/manifest.json",
+
+  themeColor: "#0f172a",
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Axon CRM",
+  },
+
+  icons: {
+    icon: "/icons/192.png",
+    apple: "/icons/512.png",
+  },
+};
 export default async function RootLayout({
   children,
 }: {
