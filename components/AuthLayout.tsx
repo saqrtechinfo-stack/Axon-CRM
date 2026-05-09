@@ -50,7 +50,7 @@ const clerkAppearance = {
 export function AuthLayout({ children, dbUser }: AuthLayoutProps) {
   const { user, isLoaded } = useUser();
   const pathname = usePathname();
-   const router = useRouter();
+  const router = useRouter();
 
   if (!isLoaded) {
     return (

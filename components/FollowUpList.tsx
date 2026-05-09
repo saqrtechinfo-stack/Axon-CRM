@@ -2,12 +2,11 @@
 "use client";
 
 import { useState } from "react";
-import { isPast, isToday, format, differenceInDays } from "date-fns";
+import { format, startOfDay, differenceInCalendarDays } from "date-fns";
 import {
   AlertCircle,
   Clock,
   Calendar,
-  Building2,
   Phone,
   User2,
   ChevronRight,
@@ -34,17 +33,25 @@ export function FollowUpList({
 }) {
   const [selectedLead, setSelectedLead] = useState<any>(null);
 
-  const overdue = initialFollowUps.filter(
-    (f) => isPast(new Date(f.scheduledAt)) && !isToday(new Date(f.scheduledAt)),
-  );
-  const today = initialFollowUps.filter((f) =>
-    isToday(new Date(f.scheduledAt)),
-  );
-  const upcoming = initialFollowUps.filter(
-    (f) =>
-      !isPast(new Date(f.scheduledAt)) && !isToday(new Date(f.scheduledAt)),
-  );
+  const todayDate = startOfDay(new Date());
 
+  const overdue = initialFollowUps.filter((f) => {
+    const followUpDay = startOfDay(new Date(f.scheduledAt));
+
+    return differenceInCalendarDays(followUpDay, todayDate) < 0;
+  });
+
+  const today = initialFollowUps.filter((f) => {
+    const followUpDay = startOfDay(new Date(f.scheduledAt));
+
+    return differenceInCalendarDays(followUpDay, todayDate) === 0;
+  });
+
+  const upcoming = initialFollowUps.filter((f) => {
+    const followUpDay = startOfDay(new Date(f.scheduledAt));
+
+    return differenceInCalendarDays(followUpDay, todayDate) > 0;
+  });
   const Card = ({
     f,
     variant,
@@ -52,9 +59,10 @@ export function FollowUpList({
     f: any;
     variant: "red" | "amber" | "blue";
   }) => {
-    const daysLeft = !isPast(new Date(f.scheduledAt))
-      ? differenceInDays(new Date(f.scheduledAt), new Date())
-      : null;
+    const followUpDay = startOfDay(new Date(f.scheduledAt));
+    const today = startOfDay(new Date());
+
+    const daysLeft = differenceInCalendarDays(followUpDay, today);
 
     return (
       <button

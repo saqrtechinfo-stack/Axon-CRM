@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { EnquiryFilters } from "./EnquiryFilters";
 import { StatusBadge } from "./StatusBadge";
 import { LeadDetailsDrawer } from "./LeadDetailsDrawer";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -50,8 +51,10 @@ export function EnquiryTableWrapper({
   activeTab:string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const totalPages = Math.ceil(totalCount / pageSize);
-  // const [searchTerm, setSearchTerm] = useState("");
+const searchParams = useSearchParams();
+const openLeadId = searchParams.get("openLead");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [pendingMove, setPendingMove] = useState<{
     lead: any;
@@ -73,10 +76,18 @@ export function EnquiryTableWrapper({
     }
   }, [initialLeads]);
 
-  // 2. Split into Enquiries and Leads based on schema boolean
-  const enquiries = initialLeads.filter((l) => l.isEnquiry);
-  const activeLeads = initialLeads.filter((l) => !l.isEnquiry);
+useEffect(() => {
+  if (!openLeadId || !initialLeads?.length) return;
 
+  const lead = initialLeads.find((l) => l.id === openLeadId);
+
+  if (lead) {
+    setSelectedLead(lead);
+
+    // remove query param after opening
+    router.replace(pathname);
+  }
+}, [openLeadId, initialLeads, pathname, router]);
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(window.location.search);
     params.set("tab", value);
@@ -293,7 +304,7 @@ export function EnquiryTableWrapper({
             <LeadTable data={initialLeads} />
           </TabsContent>
           <TabsContent value="won">
-            <LeadTable data={initialLeads} showValue />
+            <LeadTable data={initialLeads}  />
           </TabsContent>
           <TabsContent value="lost">
             <LeadTable data={initialLeads} />

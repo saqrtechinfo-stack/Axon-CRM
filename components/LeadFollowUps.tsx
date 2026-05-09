@@ -6,8 +6,8 @@ import {
   format,
   isPast,
   isToday,
-  isTomorrow,
-  differenceInDays,
+  startOfDay,
+  differenceInCalendarDays,
 } from "date-fns";
 import {
   CalendarClock,
@@ -38,34 +38,46 @@ interface FollowUp {
 }
 
 function getUrgencyStyle(scheduledAt: string, isDone: boolean) {
-  if (isDone)
+  if (isDone) {
     return {
       label: "Done",
       className: "bg-emerald-50 border-emerald-100 text-emerald-600",
     };
-  const date = new Date(scheduledAt);
-  if (isPast(date) && !isToday(date))
+  }
+
+  const followUpDate = new Date(scheduledAt);
+
+  const today = startOfDay(new Date());
+  const followUpDay = startOfDay(followUpDate);
+
+  const dayDiff = differenceInCalendarDays(followUpDay, today);
+
+  if (dayDiff < 0) {
     return {
       label: "Overdue",
       className: "bg-red-50 border-red-200 text-red-600",
     };
-  if (isToday(date))
+  }
+
+  if (dayDiff === 0) {
     return {
       label: "Today",
       className: "bg-amber-50 border-amber-200 text-amber-600",
     };
-  if (isTomorrow(date))
+  }
+
+  if (dayDiff === 1) {
     return {
       label: "Tomorrow",
       className: "bg-blue-50 border-blue-200 text-blue-600",
     };
-  const days = differenceInDays(date, new Date());
+  }
+
   return {
-    label: `In ${days} days`,
+    label: `In ${dayDiff} days`,
     className: "bg-slate-50 border-slate-200 text-slate-500",
   };
 }
-
 export function LeadFollowUps({
   leadId,
   followUps,
@@ -79,16 +91,18 @@ export function LeadFollowUps({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
+
   // Form state
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
   const [notes, setNotes] = useState("");
-
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   const handleCreate = async () => {
     if (!date) return toast.error("Please select a date");
 
     setIsSubmitting(true);
-    const scheduledAt = new Date(`${date}T${time}`);
+   const scheduledAt = new Date(year, month - 1, day, hours, minutes, 0, 0);
 
     const res = await createFollowUp(leadId, scheduledAt, notes);
     if (res.success) {
