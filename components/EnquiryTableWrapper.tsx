@@ -354,6 +354,7 @@ export function EnquiryTableWrapper({
 
       {selectedLead && (
         <LeadDetailsDrawer
+          key={selectedLead.id}
           currentUserRole={currentUserRole}
           availableStaff={availableStaff}
           statusColumns={statusColumns}

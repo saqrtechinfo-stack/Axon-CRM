@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { leadId: string } },
+  { params }: { params: Promise<{ leadId: string }> },
 ) {
   try {
     // We await params in Next.js 15

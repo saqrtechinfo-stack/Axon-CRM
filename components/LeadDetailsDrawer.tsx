@@ -78,6 +78,7 @@ export function LeadDetailsDrawer({
     isOpen && lead?.id ? `/api/leads/${lead.id}/followups` : null,
     fetcher,
   );
+  
   if (!lead) return null;
 
   const handleAssign = async (employeeId: string) => {
@@ -99,6 +100,7 @@ export function LeadDetailsDrawer({
       toast.error(res.error || "Conversion failed");
     }
   };
+  
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>

@@ -2,8 +2,9 @@
 
 import { useUser, SignIn, SignUp } from "@clerk/nextjs";
 import { Sidebar } from "@/components/Sidebar";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react"; // Switched to a cleaner security icon
+import { NotificationBell } from "./NotificationBell";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -49,6 +50,7 @@ const clerkAppearance = {
 export function AuthLayout({ children, dbUser }: AuthLayoutProps) {
   const { user, isLoaded } = useUser();
   const pathname = usePathname();
+   const router = useRouter();
 
   if (!isLoaded) {
     return (
@@ -125,6 +127,15 @@ export function AuthLayout({ children, dbUser }: AuthLayoutProps) {
         user={dbUser}
         companyName={dbUser?.company?.name || "No Company Linked"}
       />
+      <div className="fixed top-4 right-4 z-50">
+        <NotificationBell
+          onLeadClick={(lead) => {
+            // You need a way to open the drawer from here
+            // Simplest: navigate to enquiries page with the lead ID
+            router.push(`/enquiries?openLead=${lead.id}`);
+          }}
+        />
+      </div>
       <main className="lg:pl-72 pt-20 lg:pt-0">
         <div className="max-w-7xl mx-auto">{children}</div>
       </main>
