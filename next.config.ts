@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
-import withPWA from "next-pwa";
+import withPWAInit from "next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+});
 
 const nextConfig: NextConfig = {
-  /* Prisma support for Netlify */
   serverExternalPackages: ["@prisma/client"],
 
-  /* Ignore minor build issues */
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -13,10 +16,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  // 👇 IMPORTANT FIX
+  turbopack: {}, // forces compatibility mode
 };
 
-export default withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-})(nextConfig);
+export default withPWA(nextConfig);
