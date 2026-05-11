@@ -141,8 +141,8 @@ export function NotificationBell({ onLeadClick }: NotificationBellProps) {
           {/* Footer */}
           {followUps.length > 0 && (
             <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
-              
-              <a  href="/follow-ups"
+              <a
+                href="/follow-ups"
                 className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
               >
                 View All Follow-Ups →
@@ -187,7 +187,9 @@ function NotificationCard({
           <p className="text-xs font-black text-slate-800 truncate">
             {followUp.lead.clientCompany}
           </p>
-          <p className="text-[10px] text-slate-500 truncate">{followUp.notes}</p>
+          <p className="text-[10px] text-slate-500 truncate">
+            {followUp.notes}
+          </p>
           <div className="flex items-center gap-1 mt-1">
             <Calendar className="h-2.5 w-2.5 text-slate-400" />
             <span className="text-[9px] font-bold text-slate-400">
