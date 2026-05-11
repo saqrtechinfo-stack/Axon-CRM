@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createLead } from "@/actions/lead-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,9 +23,9 @@ import {
   Building2,
   User,
   Calendar,
-  Briefcase,
   Search,
   X,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -44,6 +44,182 @@ interface CreateLeadModalProps {
   availableStaff?: any[];
 }
 
+function ClientSearchField({
+  onSelect,
+}: {
+  onSelect: (client: { id: string; name: string } | null, name: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  // ✅ Flag to prevent re-searching after selection
+  const [justSelected, setJustSelected] = useState(false);
+
+  useEffect(() => {
+    // ✅ Skip search if user just selected an item
+    if (justSelected) {
+      setJustSelected(false);
+      return;
+    }
+
+    if (query.length < 1) {
+      setResults([]);
+      setIsOpen(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch(
+          `/api/clients/search?q=${encodeURIComponent(query)}`,
+        );
+        const data = await res.json();
+        // ✅ Only show results if not already selected
+        if (!justSelected) {
+          setResults(data);
+          setIsOpen(true);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer); // ✅ cleanup prevents stale calls
+  }, [query]);
+
+  const handleSelect = (client: any) => {
+    setJustSelected(true); // ✅ block next useEffect run
+    setSelected(client);
+    setQuery(client.name);
+    setIsOpen(false);
+    setResults([]); // ✅ clear results immediately
+    onSelect(client, client.name);
+  };
+
+  const handleNewCompany = () => {
+    setJustSelected(true);
+    setSelected(null);
+    setIsOpen(false);
+    setResults([]);
+    onSelect(null, query);
+  };
+
+  const handleClear = () => {
+    setSelected(null);
+    setQuery("");
+    setResults([]);
+    setIsOpen(false);
+    onSelect(null, "");
+  };
+
+  return (
+    <div className="relative space-y-2">
+      <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+        <Building2 className="h-3 w-3" /> Company Name
+      </Label>
+      <div className="relative">
+        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        <input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSelected(null); // ✅ clear selection when typing
+            onSelect(null, e.target.value);
+          }}
+          onFocus={() => {
+            // ✅ Only reopen if not selected and has results
+            if (!selected && results.length > 0) setIsOpen(true);
+          }}
+          onBlur={() => {
+            // ✅ Delay close so click on item registers first
+            setTimeout(() => setIsOpen(false), 150);
+          }}
+          placeholder="Search or add company..."
+          className="w-full pl-9 pr-8 h-11 bg-slate-50 rounded-xl text-sm border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {/* Clear button */}
+        {query && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {/* Linked badge */}
+        {selected && (
+          <span className="absolute right-7 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+            Linked ✓
+          </span>
+        )}
+      </div>
+
+      {/* Dropdown */}
+      {isOpen && query.length > 0 && (
+        <div className="absolute top-[72px] left-0 right-0 bg-white rounded-xl border border-slate-200 shadow-xl z-[100] overflow-hidden">
+          {isLoading ? (
+            <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Searching...
+            </div>
+          ) : (
+            <>
+              {/* ✅ Deduplicate results by id */}
+              {[...new Map(results.map((c) => [c.id, c])).values()].map(
+                (client: any) => (
+                  <button
+                    key={client.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()} // ✅ prevent blur before click
+                    onClick={() => handleSelect(client)}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">
+                          {client.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {client._count?.leads || 0} existing lead(s)
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-50 px-2 py-1 rounded-lg">
+                        Select
+                      </span>
+                    </div>
+                  </button>
+                ),
+              )}
+
+              {/* Create new option */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()} // ✅ prevent blur before click
+                onClick={handleNewCompany}
+                className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center gap-2"
+              >
+                <Plus className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-sm font-bold text-emerald-600">
+                  Create "{query}" as new client
+                </span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Hidden inputs */}
+      <input type="hidden" name="clientCompany" value={query} />
+      <input type="hidden" name="clientId" value={selected?.id || "new"} />
+    </div>
+  );
+}
 export function CreateLeadModal({
   categories,
   products,
@@ -51,19 +227,15 @@ export function CreateLeadModal({
 }: CreateLeadModalProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // New state to toggle between Enquiry and Lead mode
-  const [mode, setMode] = useState<"enquiry" | "lead">("enquiry");
-
-  const safeCategories = categories ?? [];
-  const safeProducts = products ?? [];
-  const safeStaff = availableStaff ?? [];
-
-  // State for multiple products
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [clientName, setClientName] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [assignedToId, setAssignedToId] = useState<string>("");
-
+  const [mode, setMode] = useState<"enquiry" | "lead">("enquiry");
+  const safeCategories = categories ?? [];
+  const safeProducts = products ?? [];
+  const safeStaff = availableStaff ?? [];
   const filteredProducts = useMemo(() => {
     if (!selectedCategoryId) return [];
     return safeProducts.filter((p) => p.categoryId === selectedCategoryId);
@@ -78,15 +250,13 @@ export function CreateLeadModal({
 
     formData.append("isEnquiry", String(mode === "enquiry"));
     formData.append("categoryId", selectedCategoryId);
-
-    // FIX: Send the array of IDs as a JSON string
     formData.append("productIds", JSON.stringify(selectedProductIds));
-
     formData.append(
       "assignedToId",
       assignedToId === "none" ? "" : assignedToId,
     );
-
+    formData.append("clientId", selectedClient?.id || "new");
+    formData.append("clientCompany", clientName);
     try {
       const result = await createLead(formData);
 
@@ -237,16 +407,12 @@ export function CreateLeadModal({
           <div className="space-y-4">
             {/* FIXED: All grids changed to responsive stack */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
-                  <Building2 className="h-3 w-3" /> Company Name
-                </Label>
-                <Input
-                  name="clientCompany"
-                  placeholder="Al Saqr Tech"
-                  className="bg-slate-50 border-none h-10 sm:h-11"
-                />
-              </div>
+              <ClientSearchField
+                onSelect={(client, name) => {
+                  setSelectedClient(client);
+                  setClientName(name);
+                }}
+              />
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
                   <User className="h-3 w-3" /> Contact Person

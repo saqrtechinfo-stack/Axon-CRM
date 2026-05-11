@@ -7,33 +7,64 @@ datasource db {
 }
 
 model Company {
-  id                String              @id @default(cuid())
-  name              String              @unique
-  domain            String?             @unique
-  logo              String?
-  plan              String              @default("BASIC")
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  status            CompanyStatus       @default(ACTIVE)
-  empIdPrefix       String              @default("EMP-")
-  nextEmpNumber     Int                 @default(1001)
-  address           String?
-  contactEmail      String?
-  contactPhone      String?
-  subscriptionEnd   DateTime?
-  trialEndsAt       DateTime?
-  
-  // Relations (Lowercase to match your existing frontend logic)
-  categories        Category[]
-  invitations       CompanyInvitation[]
-  departments       Department[]
-  designations      Designation[]
-  employees         Employee[]
-  leads             Lead[]
-  statuses          LeadStatus[]
-  products          Product[]
-  quotations        Quotation[]
-  users             User[]
+  id              String              @id @default(cuid())
+  name            String              @unique
+  domain          String?             @unique
+  logo            String?
+  plan            String              @default("BASIC")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  status          CompanyStatus       @default(ACTIVE)
+  empIdPrefix     String              @default("EMP-")
+  nextEmpNumber   Int                 @default(1001)
+  address         String?
+  contactEmail    String?
+  contactPhone    String?
+  subscriptionEnd DateTime?
+  trialEndsAt     DateTime?
+  categories      Category[]
+  clients         Client[]
+  invitations     CompanyInvitation[]
+  departments     Department[]
+  designations    Designation[]
+  employees       Employee[]
+  leads           Lead[]
+  statuses        LeadStatus[]
+  products        Product[]
+  quotations      Quotation[]
+  users           User[]
+}
+
+model Client {
+  id               String          @id @default(cuid())
+  companyId        String
+  name             String
+  domain           String?
+  phone            String?
+  email            String?
+  address          String?
+  natureOfBusiness String?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  company          Company         @relation(fields: [companyId], references: [id])
+  contacts         ClientContact[]
+  leads            Lead[]
+
+  @@unique([name, companyId])
+  @@index([companyId])
+}
+
+model ClientContact {
+  id          String   @id @default(cuid())
+  clientId    String
+  name        String
+  email       String?
+  phone       String?
+  designation String?
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -51,85 +82,78 @@ model User {
   status            UserStatus          @default(ACTIVE)
   isSystemAdmin     Boolean             @default(false)
   imageUrl          String?
-
-  // Named relations matching Lead model to resolve ambiguity
-  ownedLeads        Lead[]              @relation("LeadOwner")
+  employeeId        String?             @unique
+  invitations       CompanyInvitation[] @relation("UserToInvitation")
   assignedLeads     Lead[]              @relation("LeadAssignedTo")
-  collaboratingOn   Lead[]              @relation("LeadCollaborators")
-
-  // Other Relations (Lowercase for code consistency)
-  tasks             Task[]
+  ownedLeads        Lead[]              @relation("LeadOwner")
   activities        LeadActivity[]
+  followUps         LeadFollowUp[]
+  createdQuotations Quotation[]         @relation("QuotationCreator")
+  tasks             Task[]
   company           Company             @relation(fields: [companyId], references: [id])
   department        Department?         @relation(fields: [departmentId], references: [id])
   designation       Designation?        @relation(fields: [designationId], references: [id])
+  employee          Employee?           @relation(fields: [employeeId], references: [id])
   manager           User?               @relation("ReportsTo", fields: [managerId], references: [id])
   subordinates      User[]              @relation("ReportsTo")
-  invitations       CompanyInvitation[] @relation("UserToInvitation")
-  createdQuotations Quotation[]         @relation("QuotationCreator")
-  followUps    LeadFollowUp[]
+  collaboratingOn   Lead[]              @relation("LeadCollaborators")
 }
 
 model Employee {
-  id              String       @id @default(cuid())
-  employeeId      String       @unique
-  firstName       String
-  lastName        String
-  email           String       @unique
-  phone           String
-  status          String       @default("ACTIVE")
-  companyId       String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  altPhone        String?
-  city            String?
-  country         String       @default("United Arab Emirates")
-  departmentId    String
-  designationId   String
-  reportingToId   String?
-  role            EmployeeRole @default(STAFF)
-  imageUrl        String?
-  fullAddress     String?
-  joiningDate     DateTime?    @default(now())
-  probationDays   Int          @default(90)
-  bankName        String?
-  dob             DateTime?
-  emergencyName   String?
-  emergencyPhone  String?
-  iban            String?
-  swiftCode       String?
-  gender          String?
-
-  // Relations
-  attachments     Attachment[]
-  company         Company      @relation(fields: [companyId], references: [id])
-  designation     Designation  @relation(fields: [designationId], references: [id])
-  
-  // Named to match staff management page queries
-  department      Department   @relation("EmployeeToDepartment", fields: [departmentId], references: [id])
-  reportingTo     Employee?    @relation("Hierarchy", fields: [reportingToId], references: [id])
-  subordinates    Employee[]   @relation("Hierarchy")
-
-  // Back-relation for departments managed by this employee
+  id                 String       @id @default(cuid())
+  employeeId         String       @unique
+  firstName          String
+  lastName           String
+  email              String       @unique
+  phone              String
+  status             String       @default("ACTIVE")
+  companyId          String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  altPhone           String?
+  city               String?
+  country            String       @default("United Arab Emirates")
+  departmentId       String
+  designationId      String
+  reportingToId      String?
+  role               EmployeeRole @default(STAFF)
+  imageUrl           String?
+  fullAddress        String?
+  joiningDate        DateTime?    @default(now())
+  probationDays      Int          @default(90)
+  bankName           String?
+  dob                DateTime?
+  emergencyName      String?
+  emergencyPhone     String?
+  iban               String?
+  swiftCode          String?
+  gender             String?
+  attachments        Attachment[]
   managedDepartments Department[] @relation("DepartmentManager")
+  company            Company      @relation(fields: [companyId], references: [id])
+  department         Department   @relation("EmployeeToDepartment", fields: [departmentId], references: [id])
+  designation        Designation  @relation(fields: [designationId], references: [id])
+  reportingTo        Employee?    @relation("Hierarchy", fields: [reportingToId], references: [id])
+  subordinates       Employee[]   @relation("Hierarchy")
+  user               User?
 
   @@index([companyId])
   @@index([departmentId])
 }
 
 model Lead {
-  id               String    @id @default(cuid())
   companyId        String
   clientCompany    String?
   clientName       String?
   ownerId          String?
+  id               String         @id @default(cuid())
   name             String
   email            String
   phone            String?
-  value            Float     @default(0)
+  value            Float          @default(0)
   notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   statusId         String?
   designation      String?
   assignedToId     String?
@@ -140,50 +164,47 @@ model Lead {
   location         String?
   source           String?
   categoryId       String?
-  startDate        DateTime  @default(now())
-  isEnquiry        Boolean   @default(true)
+  startDate        DateTime       @default(now())
+  isEnquiry        Boolean        @default(true)
   lossReason       String?
   natureOfBusiness String?
-  followUps    LeadFollowUp[]
-
-  // Relations
-  company          Company     @relation(fields: [companyId], references: [id])
-  status           LeadStatus? @relation(fields: [statusId], references: [id])
-  category         Category?   @relation(fields: [categoryId], references: [id])
-
-  // Named User Relations
-  owner            User?       @relation("LeadOwner", fields: [ownerId], references: [id])
-  assignedTo       User?       @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
-  collaborators    User[]      @relation("LeadCollaborators")
-
-  // Other Relations
-  activities       LeadActivity[]
-  quotations       Quotation[]
+  clientId         String?
   attachments      Attachment[]
-  products         Product[]      @relation("LeadProducts")
+  assignedTo       User?          @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  category         Category?      @relation(fields: [categoryId], references: [id])
+  client           Client?        @relation(fields: [clientId], references: [id])
+  company          Company        @relation(fields: [companyId], references: [id])
+  owner            User?          @relation("LeadOwner", fields: [ownerId], references: [id])
+  status           LeadStatus?    @relation(fields: [statusId], references: [id])
+  activities       LeadActivity[]
+  followUps        LeadFollowUp[]
+  quotations       Quotation[]
   tasks            Task[]
+  collaborators    User[]         @relation("LeadCollaborators")
+  products         Product[]      @relation("LeadProducts")
 
   @@index([companyId])
   @@index([statusId])
 }
+
 model LeadFollowUp {
   id          String    @id @default(cuid())
   leadId      String
-  userId      String    // who scheduled it
-  scheduledAt DateTime  // the follow-up date & time
-  notes       String?   // what to follow up about
+  userId      String
+  scheduledAt DateTime
+  notes       String?
   isDone      Boolean   @default(false)
   doneAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   lead        Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id])
 
   @@index([leadId])
   @@index([userId])
-  @@index([scheduledAt]) // for querying upcoming follow-ups
+  @@index([scheduledAt])
 }
+
 model Task {
   id          String   @id @default(cuid())
   content     String
@@ -195,29 +216,26 @@ model Task {
   leadId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  // Relations
-  user        User     @relation(fields: [userId], references: [id])
   lead        Lead?    @relation(fields: [leadId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model Department {
-  id            String       @id @default(cuid())
-  name          String
-  companyId     String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  managerId     String?
-  parentId      String?
-  
-  company       Company      @relation(fields: [companyId], references: [id])
-  manager       Employee?    @relation("DepartmentManager", fields: [managerId], references: [id])
-  parent        Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  children      Department[] @relation("SubDepartments")
-  employees     Employee[]   @relation("EmployeeToDepartment")
-  users         User[]
+  id        String       @id @default(cuid())
+  name      String
+  companyId String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  managerId String?
+  parentId  String?
+  company   Company      @relation(fields: [companyId], references: [id])
+  manager   Employee?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  parent    Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Department[] @relation("SubDepartments")
+  employees Employee[]   @relation("EmployeeToDepartment")
+  users     User[]
 }
 
 model Designation {
@@ -254,7 +272,6 @@ model Product {
   categoryId  String
   companyId   String
   createdAt   DateTime @default(now())
-  
   category    Category @relation(fields: [categoryId], references: [id])
   company     Company  @relation(fields: [companyId], references: [id])
   leads       Lead[]   @relation("LeadProducts")
@@ -311,7 +328,6 @@ model CompanyInvitation {
   invitedBy     String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-
   company       Company  @relation(fields: [companyId], references: [id])
   invitedByUser User     @relation("UserToInvitation", fields: [invitedBy], references: [id])
 
@@ -319,20 +335,19 @@ model CompanyInvitation {
 }
 
 model Quotation {
-  id          String   @id @default(cuid())
-  qId         String   @unique
-  status      String   @default("DRAFT")
-  version     Int      @default(1)
+  id          String          @id @default(cuid())
+  qId         String          @unique
+  status      String          @default("DRAFT")
+  version     Int             @default(1)
   subTotal    Float
-  taxAmount   Float    @default(0)
-  discount    Float    @default(0)
+  taxAmount   Float           @default(0)
+  discount    Float           @default(0)
   totalAmount Float
   leadId      String
   createdById String
   companyId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   company     Company         @relation(fields: [companyId], references: [id])
   createdBy   User            @relation("QuotationCreator", fields: [createdById], references: [id])
   lead        Lead            @relation(fields: [leadId], references: [id])

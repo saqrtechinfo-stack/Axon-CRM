@@ -37,9 +37,10 @@ import { assignLead, convertEnquiryToLead } from "@/actions/lead-actions";
 import useSWR from "swr";
 import { Badge } from "./ui/badge";
 import { LeadFollowUps } from "./LeadFollowUps";
+import { RelatedLeads } from "./RelatedLeads";
+import { LeadAttachments } from "./LeadAttachments";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export function LeadDetailsDrawer({
   lead,
   statusColumns = [],
@@ -50,6 +51,7 @@ export function LeadDetailsDrawer({
   currentUserRole,
   categories,
   products,
+   onLeadSwitch,
 }: {
   lead: any;
   statusColumns: any[];
@@ -60,10 +62,17 @@ export function LeadDetailsDrawer({
   availableStaff: any[];
   categories: any[];
   products: any[];
+    onLeadSwitch: (lead: any) => void; 
+
 }) {
   const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
+
+const { data: attachments = [], mutate: mutateAttachments } = useSWR(
+  isOpen && lead?.id ? `/api/leads/${lead.id}/attachments` : null,
+  fetcher,
+);
   // Fetch activities only when drawer is open
   const {
     data: activities,
@@ -78,7 +87,7 @@ export function LeadDetailsDrawer({
     isOpen && lead?.id ? `/api/leads/${lead.id}/followups` : null,
     fetcher,
   );
-  
+
   if (!lead) return null;
 
   const handleAssign = async (employeeId: string) => {
@@ -100,7 +109,6 @@ export function LeadDetailsDrawer({
       toast.error(res.error || "Conversion failed");
     }
   };
-  
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -204,6 +212,15 @@ export function LeadDetailsDrawer({
                   </Button>
                 </div>
               )}
+
+              <RelatedLeads
+                currentLeadId={lead.id}
+                clientId={lead.clientId}
+                clientName={lead.client?.name || lead.clientCompany}
+                onLeadClick={(relatedLead) => {
+                  onLeadSwitch(relatedLead);
+                }}
+              />
               {/* Assignment Section */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
@@ -249,7 +266,6 @@ export function LeadDetailsDrawer({
               <hr />
               {/* Core Stats (Email, Phone, Value) */}
               <LeadReadOnlyStats lead={lead} />
-
               {/* Product List Section */}
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
@@ -276,6 +292,14 @@ export function LeadDetailsDrawer({
                   )}
                 </div>
               </div>
+
+              {/* Lead attachments */}
+               <LeadAttachments
+                leadId={lead.id}
+                attachments={attachments}
+                onUpdate={mutateAttachments}
+              />
+              {/* Lead followUps */}
               <LeadFollowUps
                 leadId={lead.id}
                 followUps={followUps}
@@ -333,7 +357,6 @@ export function LeadDetailsDrawer({
                   </div>
                 </div>
               )}
-
               {/* Activity Log */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                 <div className="flex flex-col md:flex-row items-center justify-between mb-6">

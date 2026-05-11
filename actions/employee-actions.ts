@@ -74,6 +74,7 @@ export async function onboardEmployee(data: any) {
                 : "SALES_EXECUTIVE",
             managerId: managerUserId, // Links the hierarchy in the User table
             status: "ACTIVE",
+            employeeId: employee.id,
           },
         });
 
@@ -169,7 +170,7 @@ export async function updateEmployee(id: string, data: any) {
         // Update the current subordinate's User record with the Manager's User ID
         await tx.user.updateMany({
           where: { email: updatedEmployee.email },
-          data: { managerId: managerUserId },
+          data: { managerId: managerUserId, employeeId: id },
         });
       }
     });

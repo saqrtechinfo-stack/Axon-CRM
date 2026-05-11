@@ -18,6 +18,7 @@ export async function createLead(formData: FormData) {
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
   const clientCompany = formData.get("clientCompany") as string;
+  const existingClientId = formData.get("clientId") as string;
   const natureOfBusiness = formData.get("natureOfBusiness") as string;
   const designation = formData.get("designation") as string;
   const source = formData.get("source") as string;
@@ -63,6 +64,28 @@ export async function createLead(formData: FormData) {
     statusId = newStatus?.id;
   }
 
+   let clientId: string | null = null;
+
+   if (existingClientId && existingClientId !== "new") {
+     // User selected an existing client
+     clientId = existingClientId;
+   } else if (clientCompany?.trim()) {
+     // User typed a new company name — auto create client
+     const client = await prisma.client.upsert({
+       where: {
+         name_companyId: {
+           name: clientCompany.trim(),
+           companyId: dbUser.companyId,
+         },
+       },
+       update: {}, // already exists, don't change anything
+       create: {
+         name: clientCompany.trim(),
+         companyId: dbUser.companyId,
+       },
+     });
+     clientId = client.id;
+   }
   try {
     await prisma.lead.create({
       data: {
@@ -71,6 +94,7 @@ export async function createLead(formData: FormData) {
         email,
         phone,
         clientCompany,
+        clientId: clientId,
         natureOfBusiness,
         designation,
         source,
@@ -283,7 +307,6 @@ export async function updateLeadNotes(id: string, notes: string) {
   }
 }
 
-
 // updateLeadFollowUp -------------------->
 export async function updateLeadFollowUp(
   id: string,
@@ -379,11 +402,14 @@ export async function createFollowUp(
           leadId,
           userId: dbUser.id,
           type: "FOLLOW_UP_SCHEDULED",
-          content: `Follow-up scheduled for ${scheduledAt.toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })}`,
+          content: `Follow-up scheduled for ${scheduledAt.toLocaleDateString(
+            "en-GB",
+            {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            },
+          )}`,
           remarks: notes,
         },
       }),

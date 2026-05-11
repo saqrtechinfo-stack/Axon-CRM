@@ -16,7 +16,7 @@ export function FunnelChart({ data }: { data: FunnelData[] }) {
   const total = filtered.reduce((s, d) => s + d.value, 0);
 
   return (
-    <div className="w-full flex flex-col gap-1 py-2">
+    <div className="w-full flex  flex-col gap-1 py-2">
       {filtered.map((item, index) => {
         const widthPct = (item.value / maxValue) * 100;
         const sharePct = ((item.value / total) * 100).toFixed(1);
@@ -50,7 +50,7 @@ export function FunnelChart({ data }: { data: FunnelData[] }) {
             )}
 
             {/* row */}
-            <div className="group flex items-center gap-3 rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors cursor-default">
+            <div className="group inline  md:flex items-center gap-3 rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors cursor-default">
               {/* color dot */}
               <div
                 className="w-2 h-2 rounded-full flex-shrink-0"

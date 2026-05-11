@@ -304,7 +304,7 @@ useEffect(() => {
             <LeadTable data={initialLeads} />
           </TabsContent>
           <TabsContent value="won">
-            <LeadTable data={initialLeads}  />
+            <LeadTable data={initialLeads} />
           </TabsContent>
           <TabsContent value="lost">
             <LeadTable data={initialLeads} />
@@ -371,6 +371,7 @@ useEffect(() => {
           statusColumns={statusColumns}
           categories={categories} // Pass this
           products={products}
+          onLeadSwitch={(relatedLead) => setSelectedLead(relatedLead)}
           lead={selectedLead}
           isOpen={!!selectedLead}
           onClose={() => {

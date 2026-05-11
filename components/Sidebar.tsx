@@ -140,7 +140,7 @@ function NavContent({ pathname, onClose, user, companyName }: NavContentProps) {
         </p>
       </div>
 
-      <div className="flex-1 px-4 space-y-8 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 px-4 space-y-8 overflow-y-auto hide-scrollbar">
         {navigationGroups.map((group) => {
           // Filter routes in this group by role
           const filteredRoutes = group.routes.filter((r) =>
