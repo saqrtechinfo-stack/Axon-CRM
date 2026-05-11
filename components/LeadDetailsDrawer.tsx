@@ -134,7 +134,7 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
                   onClick={() => setIsEditing(!isEditing)}
                   variant="outline"
                   size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white font-bold uppercase text-[10px] ml-auto"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white font-bold uppercase text-[10px] "
                 >
                   {isEditing ? (
                     <>
