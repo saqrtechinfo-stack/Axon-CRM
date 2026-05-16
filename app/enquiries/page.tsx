@@ -3,10 +3,49 @@ import { auth } from "@clerk/nextjs/server";
 import { EnquiryTableWrapper } from "@/components/EnquiryTableWrapper";
 import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+async function getAllSubordinateIds(userId: string): Promise<string[]> {
+  // Fetch ALL users in the company in ONE query
+  const allUsers = await prisma.user.findMany({
+    where: {
+      companyId: (await prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      }))!.companyId,
+    },
+    select: { id: true, managerId: true },
+  });
+
+  // Build hierarchy map in memory — no more DB calls
+  const subordinates = new Set<string>();
+  const queue = [userId];
+  const visited = new Set<string>(); // ✅ prevent infinite loop
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+
+    if (visited.has(currentId)) continue; // ✅ skip if already processed
+    visited.add(currentId);
+
+    // Find direct reports of currentId
+    const directReports = allUsers.filter(
+      (u) => u.managerId === currentId && u.id !== currentId, // ✅ skip self-reference
+    );
+
+    for (const report of directReports) {
+      if (!subordinates.has(report.id)) {
+        subordinates.add(report.id);
+        queue.push(report.id);
+      }
+    }
+  }
+
+  return Array.from(subordinates);
+}
 export default async function EnquiriesPage({
   searchParams,
 }: {
@@ -16,6 +55,7 @@ export default async function EnquiriesPage({
     to?: string;
     search?: string;
     tab?: string;
+    view?: string;
   }>;
 }) {
   const { userId } = await auth();
@@ -31,7 +71,23 @@ export default async function EnquiriesPage({
   const PAGE_SIZE = 50;
   const currentPage = Math.max(1, Number(params.page) || 1);
 
-  const getTabWhere = (tab: string) => {
+  const activeView = params.view || "all"; // all | mine | assigned | unassigned
+  const viewValues = ["all", "mine", "assigned", "unassigned"] as const;
+
+  const getViewWhere = (view: string, userId: string): Prisma.LeadWhereInput => {
+    switch (view) {
+      case "mine":
+        return { ownerId: userId }; // leads I created
+      case "assigned":
+        return { assignedToId: userId }; // leads assigned to me
+      case "unassigned":
+        return { assignedToId: null }; // nobody working these
+      default:
+        return {}; // all — existing behavior
+    }
+  };
+
+  const getTabWhere = (tab: string): Prisma.LeadWhereInput => {
     switch (tab) {
       case "enquiries":
         return { isEnquiry: true };
@@ -74,15 +130,34 @@ export default async function EnquiriesPage({
 
   if (!dbUser) redirect("/sign-in");
 
-  // Check subordinates
-  const subordinates = await prisma.user.findMany({
-    where: { managerId: dbUser.id },
-    select: { id: true },
-  });
-
-  const subordinateIds = subordinates.map((s) => s.id);
-
+  const subordinateIds = await getAllSubordinateIds(dbUser.id);
   const isManager = subordinateIds.length > 0;
+
+  // ✅ Resolve assignable staff BEFORE Promise.all
+  const getAssignableStaff = () => {
+    if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
+      return prisma.user.findMany({
+        where: { companyId: dbUser.companyId },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    } else if (isManager) {
+      return prisma.user.findMany({
+        where: {
+          companyId: dbUser.companyId,
+          OR: [{ id: dbUser.id }, { id: { in: subordinateIds } }],
+        },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    } else {
+      return prisma.user.findMany({
+        where: {
+          id: dbUser.id,
+          companyId: dbUser.companyId,
+        },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    }
+  };
 
   /**
    * SEARCH FILTER
@@ -114,7 +189,6 @@ export default async function EnquiriesPage({
               mode: "insensitive" as const,
             },
           },
-         
         ],
       }
     : {};
@@ -122,7 +196,9 @@ export default async function EnquiriesPage({
   /**
    * BASE WHERE
    */
-  const baseWhere: any = {
+  const andFilters: Prisma.LeadWhereInput[] = [searchFilter];
+
+  const baseWhere: Prisma.LeadWhereInput = {
     companyId: dbUser.companyId,
 
     ...(from || to
@@ -139,7 +215,7 @@ export default async function EnquiriesPage({
         }
       : {}),
 
-    AND: [searchFilter],
+    AND: andFilters,
   };
 
   /**
@@ -148,7 +224,7 @@ export default async function EnquiriesPage({
   if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
     // Admin sees everything
   } else if (isManager) {
-    baseWhere.AND.push({
+    andFilters.push({
       OR: [
         { assignedToId: dbUser.id },
         { ownerId: dbUser.id },
@@ -160,7 +236,7 @@ export default async function EnquiriesPage({
       ],
     });
   } else {
-    baseWhere.AND.push({
+    andFilters.push({
       OR: [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }],
     });
   }
@@ -171,7 +247,20 @@ export default async function EnquiriesPage({
   const dataFetchWhere = {
     ...baseWhere,
     ...getTabWhere(activeTab),
+    ...getViewWhere(activeView, dbUser.id),
   };
+
+  const activeViewWhere = getViewWhere(activeView, dbUser.id);
+  const tabCountWhere = (tab: string): Prisma.LeadWhereInput => ({
+    ...baseWhere,
+    ...activeViewWhere,
+    ...getTabWhere(tab),
+  });
+  const viewCountWhere = (view: string): Prisma.LeadWhereInput => ({
+    ...baseWhere,
+    ...getTabWhere(activeTab),
+    ...getViewWhere(view, dbUser.id),
+  });
 
   /**
    * FETCH EVERYTHING
@@ -182,11 +271,12 @@ export default async function EnquiriesPage({
     staff,
     leads,
     statusColumns,
-    totalLeadsCount,
+    totalCurrentCount,
     totalEnquiry,
     totalLeads,
     totalWon,
     totalLost,
+    ...viewCountResults
   ] = await Promise.all([
     prisma.category.findMany({
       where: { companyId: dbUser.companyId },
@@ -205,24 +295,7 @@ export default async function EnquiriesPage({
       },
     }),
 
-    prisma.user.findMany({
-      where: {
-        companyId: dbUser.companyId,
-
-        ...(dbUser.role !== "ADMIN" && dbUser.role !== "SUPER_ADMIN"
-          ? {
-              OR: [{ id: dbUser.id }, { managerId: dbUser.id }],
-            }
-          : {}),
-      },
-
-      select: {
-        id: true,
-        name: true,
-        role: true,
-        imageUrl: true,
-      },
-    }),
+    getAssignableStaff(),
 
     prisma.lead.findMany({
       where: dataFetchWhere,
@@ -270,51 +343,35 @@ export default async function EnquiriesPage({
     }),
 
     prisma.lead.count({
-      where: baseWhere,
+      where: dataFetchWhere,
     }),
-
+    // Total Enquiry
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: true,
-      },
+      where: tabCountWhere("enquiries"),
     }),
-
+    // Total Leads
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isClosing: false,
-          isWon: false,
-        },
-      },
+      where: tabCountWhere("leads"),
     }),
-
+    // Total WON
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isWon: true,
-        },
-      },
+      where: tabCountWhere("won"),
     }),
 
+    // Total LOST
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isClosing: true,
-          isWon: false,
-        },
-      },
+      where: tabCountWhere("lost"),
     }),
+    ...viewValues.map((view) =>
+      prisma.lead.count({
+        where: viewCountWhere(view),
+      }),
+    ),
   ]);
+
+  const viewCounts = Object.fromEntries(
+    viewValues.map((view, index) => [view, viewCountResults[index] ?? 0]),
+  ) as Record<(typeof viewValues)[number], number>;
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -343,12 +400,15 @@ export default async function EnquiriesPage({
         currentUserRole={dbUser.role}
         categories={categories}
         products={products}
-        totalCount={totalLeadsCount}
+        totalCount={totalCurrentCount}
         currentPage={currentPage}
         pageSize={PAGE_SIZE}
         totalLeads={totalLeads}
         totalEnquiry={totalEnquiry}
         activeTab={activeTab}
+        isManager={isManager}
+        activeView={activeView}
+        viewCounts={viewCounts}
         totalWon={totalWon}
         totalLost={totalLost}
       />

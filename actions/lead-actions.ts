@@ -224,6 +224,7 @@ export async function updateLeadStatus(
       },
       data: {
         statusId: statusId,
+        closedById: isWon || isLost ? dbUser.id : undefined,
         lossReason: isLost ? remarks : null,
         activities: {
           create: {
@@ -246,7 +247,53 @@ export async function updateLeadStatus(
     return { success: false, error: "Database update failed" };
   }
 }
+// Transfer Lead ownership -------------------->
+export async function transferLeadOwnership(
+  leadId: string,
+  newOwnerId: string,
+  reason?: string,
+) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
 
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, role: true, name: true },
+  });
+
+  // Only managers and admins can transfer ownership
+  if (!["ADMIN", "SUPER_ADMIN", "MANAGER"].includes(dbUser!.role)) {
+    return { success: false, error: "Insufficient permissions" };
+  }
+
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    include: { owner: { select: { name: true } } },
+  });
+
+  const newOwner = await prisma.user.findUnique({
+    where: { id: newOwnerId },
+    select: { name: true },
+  });
+
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: {
+      ownerId: newOwnerId,
+      activities: {
+        create: {
+          type: "OWNERSHIP_TRANSFER",
+          content: `Lead ownership transferred from ${lead?.owner?.name} to ${newOwner?.name}`,
+          remarks: reason || "Ownership transferred",
+          userId: dbUser!.id,
+        },
+      },
+    },
+  });
+
+  revalidatePath("/enquiries");
+  return { success: true };
+}
 // Add Remark -------------------->
 export async function addLeadRemark(leadId: string, remarks: string) {
   try {

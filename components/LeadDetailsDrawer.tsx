@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { toast } from "sonner";
-import { assignLead, convertEnquiryToLead } from "@/actions/lead-actions";
+import { assignLead, convertEnquiryToLead, transferLeadOwnership } from "@/actions/lead-actions";
 import useSWR from "swr";
 import { Badge } from "./ui/badge";
 import { LeadFollowUps } from "./LeadFollowUps";
@@ -99,6 +99,18 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
     }
   };
 
+  const handleOwnerTransfer = async (newOwnerId: string) => {
+    if (newOwnerId === lead.ownerId) return; // no change
+
+    const res = await transferLeadOwnership(lead.id, newOwnerId);
+    if (res.success) {
+      toast.success("Lead ownership transferred");
+      mutate(); // refresh activities
+      onUpdate(); // refresh table
+    } else {
+      toast.error(res.error || "Transfer failed");
+    }
+  };
   const handleConvert = async () => {
     const res = await convertEnquiryToLead(lead.id);
     if (res.success) {
@@ -221,6 +233,33 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
                   onLeadSwitch(relatedLead);
                 }}
               />
+              {/* Ownership Section */}
+              {["ADMIN", "MANAGER"].includes(currentUserRole) && (
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase italic">
+                      Lead Owner (Sourcing Credit)
+                    </p>
+                    <Select
+                      onValueChange={(newOwnerId) =>
+                        handleOwnerTransfer(newOwnerId)
+                      }
+                      defaultValue={lead.ownerId || ""}
+                    >
+                      <SelectTrigger className="h-6 border-none p-0 bg-transparent font-bold text-xs shadow-none focus:ring-0">
+                        <SelectValue placeholder="Select Owner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStaff.map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
               {/* Assignment Section */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
@@ -294,7 +333,7 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
               </div>
 
               {/* Lead attachments */}
-               <LeadAttachments
+              <LeadAttachments
                 leadId={lead.id}
                 attachments={attachments}
                 onUpdate={mutateAttachments}

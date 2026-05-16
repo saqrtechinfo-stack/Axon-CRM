@@ -97,6 +97,7 @@ model User {
   manager           User?               @relation("ReportsTo", fields: [managerId], references: [id])
   subordinates      User[]              @relation("ReportsTo")
   collaboratingOn   Lead[]              @relation("LeadCollaborators")
+  closedLeads       Lead[]              @relation("LeadClosedBy")
 }
 
 model Employee {
@@ -157,6 +158,7 @@ model Lead {
   statusId         String?
   designation      String?
   assignedToId     String?
+  closedById       String?
   followUpNotes    String?
   nextFollowUp     DateTime?
   address          String?
@@ -182,6 +184,7 @@ model Lead {
   tasks            Task[]
   collaborators    User[]         @relation("LeadCollaborators")
   products         Product[]      @relation("LeadProducts")
+  closedBy         User?          @relation("LeadClosedBy", fields: [closedById], references: [id])
 
   @@index([companyId])
   @@index([statusId])

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { EnquiryFilters } from "./EnquiryFilters";
+
 import { StatusBadge } from "./StatusBadge";
 import { LeadDetailsDrawer } from "./LeadDetailsDrawer";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Phone, Inbox, Target, User2, XCircle, Trophy } from "lucide-react";
 import { StatusChangeModal } from "./StatusChangeModal";
+import { EnquiryFilters } from "./EnquiryFilters";
 
 export function EnquiryTableWrapper({
   initialLeads,
@@ -32,8 +33,10 @@ export function EnquiryTableWrapper({
   pageSize,
   activeTab,
   totalWon,
-  totalLost
-
+  totalLost,
+  isManager,
+  activeView,
+  viewCounts,
 }: {
   initialLeads: any[];
   statusColumns: any[];
@@ -41,20 +44,23 @@ export function EnquiryTableWrapper({
   currentUserRole: string;
   categories: any[];
   products: any[];
-  totalEnquiry:number;
-  totalLeads:number;
+  totalEnquiry: number;
+  totalLeads: number;
   totalCount: number;
   currentPage: number;
   pageSize: number;
   totalWon: number;
   totalLost: number;
-  activeTab:string;
+  activeTab: string;
+  isManager: boolean;
+  activeView: string;
+  viewCounts: Record<string, number>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const totalPages = Math.ceil(totalCount / pageSize);
-const searchParams = useSearchParams();
-const openLeadId = searchParams.get("openLead");
+  const searchParams = useSearchParams();
+  const openLeadId = searchParams.get("openLead");
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [pendingMove, setPendingMove] = useState<{
     lead: any;
@@ -76,18 +82,18 @@ const openLeadId = searchParams.get("openLead");
     }
   }, [initialLeads]);
 
-useEffect(() => {
-  if (!openLeadId || !initialLeads?.length) return;
+  useEffect(() => {
+    if (!openLeadId || !initialLeads?.length) return;
 
-  const lead = initialLeads.find((l) => l.id === openLeadId);
+    const lead = initialLeads.find((l) => l.id === openLeadId);
 
-  if (lead) {
-    setSelectedLead(lead);
+    if (lead) {
+      setSelectedLead(lead);
 
-    // remove query param after opening
-    router.replace(pathname);
-  }
-}, [openLeadId, initialLeads, pathname, router]);
+      // remove query param after opening
+      router.replace(pathname);
+    }
+  }, [openLeadId, initialLeads, pathname, router]);
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(window.location.search);
     params.set("tab", value);
@@ -236,7 +242,13 @@ useEffect(() => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <EnquiryFilters total={totalCount} />
+        <EnquiryFilters
+          currentUserRole={currentUserRole}
+          isManager={isManager} // ✅ new prop
+          activeView={activeView}
+          viewCounts={viewCounts}
+          total={totalCount}
+        />
 
         <Tabs
           defaultValue="enquiries"
@@ -310,57 +322,61 @@ useEffect(() => {
             <LeadTable data={initialLeads} />
           </TabsContent>
         </Tabs>
-        <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">
-          <div className="text-xs text-slate-500 font-medium">
-            Showing{" "}
-            <span className="font-bold text-slate-900">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            -{" "}
-            <span className="font-bold text-slate-900">
-              {Math.min(currentPage * pageSize, totalCount)}
-            </span>{" "}
-            of (<span className="">{totalCount}</span> results)
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, i) => {
-                const pageNum = i + 1;
-                // Optional: Only show first few and last few if totalPages is large
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
-                      currentPage === pageNum
-                        ? "bg-slate-900 text-white shadow-md"
-                        : "text-slate-500 hover:bg-slate-100"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+        {totalCount > 0 && (
+          <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">
+            <div className="text-xs text-slate-500 font-medium">
+              Showing{" "}
+              <span className="font-bold text-slate-900">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              -{" "}
+              <span className="font-bold text-slate-900">
+                {Math.min(currentPage * pageSize, totalCount)}
+              </span>{" "}
+              of (<span className="">{totalCount}</span> results)
             </div>
 
-            <button
-              onClick={() => setPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              Next
-            </button>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    // Optional: Only show first few and last few if totalPages is large
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
+                          currentPage === pageNum
+                            ? "bg-slate-900 text-white shadow-md"
+                            : "text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {selectedLead && (
