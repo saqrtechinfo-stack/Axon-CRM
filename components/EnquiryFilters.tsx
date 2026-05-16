@@ -11,7 +11,6 @@ interface FilterProps {
   currentUserRole: string;
   isManager: boolean;
   activeView: string;
-  viewCounts: Record<string, number>;
 }
 
 const VIEW_OPTIONS = [
@@ -42,7 +41,6 @@ export function EnquiryFilters({
   currentUserRole,
   isManager,
   activeView,
-  viewCounts,
 }: FilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,13 +74,6 @@ export function EnquiryFilters({
     router.push(`?${params.toString()}`);
   };
 
-  const clearViewFilter = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("view");
-    params.set("page", "1");
-    router.push(`?${params.toString()}`);
-  };
-
   const clearAll = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("from");
@@ -105,8 +96,7 @@ export function EnquiryFilters({
 
   // Filter view options based on role
   const visibleViews = VIEW_OPTIONS.filter((v) =>
-    v.roles.includes(currentUserRole) ||
-    (isManager && v.roles.includes("MANAGER")),
+    v.roles.includes(currentUserRole),
   );
   const showViewToggle =
     isManager || ["ADMIN", "SUPER_ADMIN"].includes(currentUserRole);
@@ -154,7 +144,7 @@ export function EnquiryFilters({
         </div>
 
         {/* Clear all */}
-        {hasFilters && !showViewToggle && (
+        {hasFilters && (
           <button
             onClick={clearAll}
             className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors shrink-0"
@@ -222,44 +212,15 @@ export function EnquiryFilters({
               <button
                 key={v.value}
                 onClick={() => handleViewChange(v.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0 ${
                   activeView === v.value
                     ? "bg-blue-900 text-white shadow-sm"
                     : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                 }`}
               >
-                <span>{v.label}</span>
-                <span
-                  className={`rounded px-1.5 py-0.5 text-[9px] ${
-                    activeView === v.value
-                      ? "bg-white/15 text-white"
-                      : "bg-white text-slate-500"
-                  }`}
-                >
-                  {viewCounts[v.value] ?? 0}
-                </span>
+                {v.label}
               </button>
             ))}
-            {activeView !== "all" && (
-              <button
-                onClick={clearViewFilter}
-                className="ml-1 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-red-500 bg-red-50 hover:bg-red-100 transition-colors shrink-0"
-                title="Clear view filter"
-              >
-                <X className="h-3 w-3" />
-                Clear
-              </button>
-            )}
-            {hasFilters && (
-              <button
-                onClick={clearAll}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50 hover:bg-slate-100 hover:text-red-500 transition-colors shrink-0"
-                title="Clear all filters"
-              >
-                <X className="h-3 w-3" />
-                All
-              </button>
-            )}
           </div>
         </div>
       )}

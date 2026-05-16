@@ -224,7 +224,6 @@ export async function updateLeadStatus(
       },
       data: {
         statusId: statusId,
-        closedById: isWon || isLost ? dbUser.id : undefined,
         lossReason: isLost ? remarks : null,
         activities: {
           create: {

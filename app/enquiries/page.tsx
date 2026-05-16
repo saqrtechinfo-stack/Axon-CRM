@@ -3,7 +3,6 @@ import { auth } from "@clerk/nextjs/server";
 import { EnquiryTableWrapper } from "@/components/EnquiryTableWrapper";
 import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
-import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -55,7 +54,6 @@ export default async function EnquiriesPage({
     to?: string;
     search?: string;
     tab?: string;
-    view?: string;
   }>;
 }) {
   const { userId } = await auth();
@@ -72,9 +70,12 @@ export default async function EnquiriesPage({
   const currentPage = Math.max(1, Number(params.page) || 1);
 
   const activeView = params.view || "all"; // all | mine | assigned | unassigned
-  const viewValues = ["all", "mine", "assigned", "unassigned"] as const;
 
-  const getViewWhere = (view: string, userId: string): Prisma.LeadWhereInput => {
+  const getViewWhere = (
+    view: string,
+    userId: string,
+    subordinateIds: string[],
+  ) => {
     switch (view) {
       case "mine":
         return { ownerId: userId }; // leads I created
@@ -87,7 +88,8 @@ export default async function EnquiriesPage({
     }
   };
 
-  const getTabWhere = (tab: string): Prisma.LeadWhereInput => {
+
+  const getTabWhere = (tab: string) => {
     switch (tab) {
       case "enquiries":
         return { isEnquiry: true };
@@ -130,34 +132,34 @@ export default async function EnquiriesPage({
 
   if (!dbUser) redirect("/sign-in");
 
-  const subordinateIds = await getAllSubordinateIds(dbUser.id);
-  const isManager = subordinateIds.length > 0;
+const subordinateIds = await getAllSubordinateIds(dbUser.id);
+const isManager = subordinateIds.length > 0;
 
-  // ✅ Resolve assignable staff BEFORE Promise.all
-  const getAssignableStaff = () => {
-    if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
-      return prisma.user.findMany({
-        where: { companyId: dbUser.companyId },
-        select: { id: true, name: true, role: true, imageUrl: true },
-      });
-    } else if (isManager) {
-      return prisma.user.findMany({
-        where: {
-          companyId: dbUser.companyId,
-          OR: [{ id: dbUser.id }, { id: { in: subordinateIds } }],
-        },
-        select: { id: true, name: true, role: true, imageUrl: true },
-      });
-    } else {
-      return prisma.user.findMany({
-        where: {
-          id: dbUser.id,
-          companyId: dbUser.companyId,
-        },
-        select: { id: true, name: true, role: true, imageUrl: true },
-      });
-    }
-  };
+// ✅ Resolve assignable staff BEFORE Promise.all
+const getAssignableStaff = () => {
+  if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
+    return prisma.user.findMany({
+      where: { companyId: dbUser.companyId },
+      select: { id: true, name: true, role: true, imageUrl: true },
+    });
+  } else if (isManager) {
+    return prisma.user.findMany({
+      where: {
+        companyId: dbUser.companyId,
+        OR: [{ id: dbUser.id }, { id: { in: subordinateIds } }],
+      },
+      select: { id: true, name: true, role: true, imageUrl: true },
+    });
+  } else {
+    return prisma.user.findMany({
+      where: {
+        id: dbUser.id,
+        companyId: dbUser.companyId,
+      },
+      select: { id: true, name: true, role: true, imageUrl: true },
+    });
+  }
+};
 
   /**
    * SEARCH FILTER
@@ -193,12 +195,12 @@ export default async function EnquiriesPage({
       }
     : {};
 
+
+    
   /**
    * BASE WHERE
    */
-  const andFilters: Prisma.LeadWhereInput[] = [searchFilter];
-
-  const baseWhere: Prisma.LeadWhereInput = {
+  const baseWhere: any = {
     companyId: dbUser.companyId,
 
     ...(from || to
@@ -215,7 +217,7 @@ export default async function EnquiriesPage({
         }
       : {}),
 
-    AND: andFilters,
+    AND: [searchFilter],
   };
 
   /**
@@ -224,7 +226,7 @@ export default async function EnquiriesPage({
   if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
     // Admin sees everything
   } else if (isManager) {
-    andFilters.push({
+    baseWhere.AND.push({
       OR: [
         { assignedToId: dbUser.id },
         { ownerId: dbUser.id },
@@ -236,7 +238,7 @@ export default async function EnquiriesPage({
       ],
     });
   } else {
-    andFilters.push({
+    baseWhere.AND.push({
       OR: [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }],
     });
   }
@@ -244,23 +246,11 @@ export default async function EnquiriesPage({
   /**
    * FINAL FILTER
    */
-  const dataFetchWhere = {
-    ...baseWhere,
-    ...getTabWhere(activeTab),
-    ...getViewWhere(activeView, dbUser.id),
-  };
-
-  const activeViewWhere = getViewWhere(activeView, dbUser.id);
-  const tabCountWhere = (tab: string): Prisma.LeadWhereInput => ({
-    ...baseWhere,
-    ...activeViewWhere,
-    ...getTabWhere(tab),
-  });
-  const viewCountWhere = (view: string): Prisma.LeadWhereInput => ({
-    ...baseWhere,
-    ...getTabWhere(activeTab),
-    ...getViewWhere(view, dbUser.id),
-  });
+const dataFetchWhere = {
+  ...baseWhere,
+  ...getTabWhere(activeTab),
+  ...getViewWhere(activeView, dbUser.id, subordinateIds),
+};
 
   /**
    * FETCH EVERYTHING
@@ -271,12 +261,11 @@ export default async function EnquiriesPage({
     staff,
     leads,
     statusColumns,
-    totalCurrentCount,
+    totalLeadsCount,
     totalEnquiry,
     totalLeads,
     totalWon,
     totalLost,
-    ...viewCountResults
   ] = await Promise.all([
     prisma.category.findMany({
       where: { companyId: dbUser.companyId },
@@ -343,35 +332,54 @@ export default async function EnquiriesPage({
     }),
 
     prisma.lead.count({
-      where: dataFetchWhere,
+      where: baseWhere,
     }),
     // Total Enquiry
     prisma.lead.count({
-      where: tabCountWhere("enquiries"),
+      where: {
+        ...baseWhere,
+        isEnquiry: true,
+      },
     }),
     // Total Leads
     prisma.lead.count({
-      where: tabCountWhere("leads"),
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+
+        status: {
+          isClosing: false,
+          isWon: false,
+        },
+      },
     }),
     // Total WON
     prisma.lead.count({
-      where: tabCountWhere("won"),
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+
+        status: {
+          isWon: true,
+        },
+      },
     }),
 
     // Total LOST
     prisma.lead.count({
-      where: tabCountWhere("lost"),
+      where: {
+        ...baseWhere,
+        isEnquiry: false,
+
+        status: {
+          isClosing: true,
+          isWon: false,
+        },
+      },
     }),
-    ...viewValues.map((view) =>
-      prisma.lead.count({
-        where: viewCountWhere(view),
-      }),
-    ),
   ]);
 
-  const viewCounts = Object.fromEntries(
-    viewValues.map((view, index) => [view, viewCountResults[index] ?? 0]),
-  ) as Record<(typeof viewValues)[number], number>;
+
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -400,15 +408,12 @@ export default async function EnquiriesPage({
         currentUserRole={dbUser.role}
         categories={categories}
         products={products}
-        totalCount={totalCurrentCount}
+        totalCount={totalLeadsCount}
         currentPage={currentPage}
         pageSize={PAGE_SIZE}
         totalLeads={totalLeads}
         totalEnquiry={totalEnquiry}
         activeTab={activeTab}
-        isManager={isManager}
-        activeView={activeView}
-        viewCounts={viewCounts}
         totalWon={totalWon}
         totalLost={totalLost}
       />

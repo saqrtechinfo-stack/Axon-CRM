@@ -10,6 +10,7 @@ import { Toaster } from "sonner";
 import { Prisma } from "@prisma/client";
 import { Suspense } from "react";
 import Loading from "./loading";
+import { ServiceWorkerCleanup } from "@/components/ServiceWorkerCleanup";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -113,6 +114,7 @@ export default async function RootLayout({
           <AuthLayout dbUser={dbUser}>
             <Suspense fallback={<Loading />}>{children}</Suspense>
           </AuthLayout>
+          <ServiceWorkerCleanup />
           <Toaster position="top-right" richColors closeButton />
         </body>
       </html>
