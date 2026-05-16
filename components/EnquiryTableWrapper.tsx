@@ -36,6 +36,7 @@ export function EnquiryTableWrapper({
   totalLost,
   isManager,
   activeView,
+  viewCounts,
 }: {
   initialLeads: any[];
   statusColumns: any[];
@@ -53,6 +54,7 @@ export function EnquiryTableWrapper({
   activeTab: string;
   isManager: boolean;
   activeView: string;
+  viewCounts: Record<string, number>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -244,6 +246,7 @@ export function EnquiryTableWrapper({
           currentUserRole={currentUserRole}
           isManager={isManager} // ✅ new prop
           activeView={activeView}
+          viewCounts={viewCounts}
           total={totalCount}
         />
 
@@ -319,57 +322,60 @@ export function EnquiryTableWrapper({
             <LeadTable data={initialLeads} />
           </TabsContent>
         </Tabs>
-        <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">
-          <div className="text-xs text-slate-500 font-medium">
-            Showing{" "}
-            <span className="font-bold text-slate-900">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            -{" "}
-            <span className="font-bold text-slate-900">
-              {Math.min(currentPage * pageSize, totalCount)}
-            </span>{" "}
-            of (<span className="">{totalCount}</span> results)
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, i) => {
-                const pageNum = i + 1;
-                // Optional: Only show first few and last few if totalPages is large
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
-                      currentPage === pageNum
-                        ? "bg-slate-900 text-white shadow-md"
-                        : "text-slate-500 hover:bg-slate-100"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+        {totalCount > 0 && (
+          <div className="flex flex-col md:flex-row items-center justify-between border-t border-slate-200 pt-4 px-2">
+            <div className="text-xs text-slate-500 font-medium">
+              Showing{" "}
+              <span className="font-bold text-slate-900">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              -{" "}
+              <span className="font-bold text-slate-900">
+                {Math.min(currentPage * pageSize, totalCount)}
+              </span>{" "}
+              of (<span className="">{totalCount}</span> results)
             </div>
 
-            <button
-              onClick={() => setPage(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              Next
-            </button>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
+                          currentPage === pageNum
+                            ? "bg-slate-900 text-white shadow-md"
+                            : "text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className="px-3 py-1 text-xs font-bold uppercase tracking-wider border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {selectedLead && (

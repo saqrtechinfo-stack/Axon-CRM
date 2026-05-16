@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { EnquiryTableWrapper } from "@/components/EnquiryTableWrapper";
 import { CreateLeadModal } from "@/components/CreateLeadModal";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -54,6 +55,7 @@ export default async function EnquiriesPage({
     to?: string;
     search?: string;
     tab?: string;
+    view?: string;
   }>;
 }) {
   const { userId } = await auth();
@@ -70,12 +72,9 @@ export default async function EnquiriesPage({
   const currentPage = Math.max(1, Number(params.page) || 1);
 
   const activeView = params.view || "all"; // all | mine | assigned | unassigned
+  const viewValues = ["all", "mine", "assigned", "unassigned"] as const;
 
-  const getViewWhere = (
-    view: string,
-    userId: string,
-    subordinateIds: string[],
-  ) => {
+  const getViewWhere = (view: string, userId: string): Prisma.LeadWhereInput => {
     switch (view) {
       case "mine":
         return { ownerId: userId }; // leads I created
@@ -88,8 +87,7 @@ export default async function EnquiriesPage({
     }
   };
 
-
-  const getTabWhere = (tab: string) => {
+  const getTabWhere = (tab: string): Prisma.LeadWhereInput => {
     switch (tab) {
       case "enquiries":
         return { isEnquiry: true };
@@ -132,34 +130,34 @@ export default async function EnquiriesPage({
 
   if (!dbUser) redirect("/sign-in");
 
-const subordinateIds = await getAllSubordinateIds(dbUser.id);
-const isManager = subordinateIds.length > 0;
+  const subordinateIds = await getAllSubordinateIds(dbUser.id);
+  const isManager = subordinateIds.length > 0;
 
-// ✅ Resolve assignable staff BEFORE Promise.all
-const getAssignableStaff = () => {
-  if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
-    return prisma.user.findMany({
-      where: { companyId: dbUser.companyId },
-      select: { id: true, name: true, role: true, imageUrl: true },
-    });
-  } else if (isManager) {
-    return prisma.user.findMany({
-      where: {
-        companyId: dbUser.companyId,
-        OR: [{ id: dbUser.id }, { id: { in: subordinateIds } }],
-      },
-      select: { id: true, name: true, role: true, imageUrl: true },
-    });
-  } else {
-    return prisma.user.findMany({
-      where: {
-        id: dbUser.id,
-        companyId: dbUser.companyId,
-      },
-      select: { id: true, name: true, role: true, imageUrl: true },
-    });
-  }
-};
+  // ✅ Resolve assignable staff BEFORE Promise.all
+  const getAssignableStaff = () => {
+    if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
+      return prisma.user.findMany({
+        where: { companyId: dbUser.companyId },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    } else if (isManager) {
+      return prisma.user.findMany({
+        where: {
+          companyId: dbUser.companyId,
+          OR: [{ id: dbUser.id }, { id: { in: subordinateIds } }],
+        },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    } else {
+      return prisma.user.findMany({
+        where: {
+          id: dbUser.id,
+          companyId: dbUser.companyId,
+        },
+        select: { id: true, name: true, role: true, imageUrl: true },
+      });
+    }
+  };
 
   /**
    * SEARCH FILTER
@@ -195,12 +193,12 @@ const getAssignableStaff = () => {
       }
     : {};
 
-
-    
   /**
    * BASE WHERE
    */
-  const baseWhere: any = {
+  const andFilters: Prisma.LeadWhereInput[] = [searchFilter];
+
+  const baseWhere: Prisma.LeadWhereInput = {
     companyId: dbUser.companyId,
 
     ...(from || to
@@ -217,7 +215,7 @@ const getAssignableStaff = () => {
         }
       : {}),
 
-    AND: [searchFilter],
+    AND: andFilters,
   };
 
   /**
@@ -226,7 +224,7 @@ const getAssignableStaff = () => {
   if (dbUser.role === "ADMIN" || dbUser.role === "SUPER_ADMIN") {
     // Admin sees everything
   } else if (isManager) {
-    baseWhere.AND.push({
+    andFilters.push({
       OR: [
         { assignedToId: dbUser.id },
         { ownerId: dbUser.id },
@@ -238,7 +236,7 @@ const getAssignableStaff = () => {
       ],
     });
   } else {
-    baseWhere.AND.push({
+    andFilters.push({
       OR: [{ assignedToId: dbUser.id }, { ownerId: dbUser.id }],
     });
   }
@@ -246,11 +244,23 @@ const getAssignableStaff = () => {
   /**
    * FINAL FILTER
    */
-const dataFetchWhere = {
-  ...baseWhere,
-  ...getTabWhere(activeTab),
-  ...getViewWhere(activeView, dbUser.id, subordinateIds),
-};
+  const dataFetchWhere = {
+    ...baseWhere,
+    ...getTabWhere(activeTab),
+    ...getViewWhere(activeView, dbUser.id),
+  };
+
+  const activeViewWhere = getViewWhere(activeView, dbUser.id);
+  const tabCountWhere = (tab: string): Prisma.LeadWhereInput => ({
+    ...baseWhere,
+    ...activeViewWhere,
+    ...getTabWhere(tab),
+  });
+  const viewCountWhere = (view: string): Prisma.LeadWhereInput => ({
+    ...baseWhere,
+    ...getTabWhere(activeTab),
+    ...getViewWhere(view, dbUser.id),
+  });
 
   /**
    * FETCH EVERYTHING
@@ -261,11 +271,12 @@ const dataFetchWhere = {
     staff,
     leads,
     statusColumns,
-    totalLeadsCount,
+    totalCurrentCount,
     totalEnquiry,
     totalLeads,
     totalWon,
     totalLost,
+    ...viewCountResults
   ] = await Promise.all([
     prisma.category.findMany({
       where: { companyId: dbUser.companyId },
@@ -332,52 +343,35 @@ const dataFetchWhere = {
     }),
 
     prisma.lead.count({
-      where: baseWhere,
+      where: dataFetchWhere,
     }),
     // Total Enquiry
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: true,
-      },
+      where: tabCountWhere("enquiries"),
     }),
     // Total Leads
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isClosing: false,
-          isWon: false,
-        },
-      },
+      where: tabCountWhere("leads"),
     }),
     // Total WON
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isWon: true,
-        },
-      },
+      where: tabCountWhere("won"),
     }),
 
     // Total LOST
     prisma.lead.count({
-      where: {
-        ...baseWhere,
-        isEnquiry: false,
-
-        status: {
-          isClosing: true,
-          isWon: false,
-        },
-      },
+      where: tabCountWhere("lost"),
     }),
+    ...viewValues.map((view) =>
+      prisma.lead.count({
+        where: viewCountWhere(view),
+      }),
+    ),
   ]);
+
+  const viewCounts = Object.fromEntries(
+    viewValues.map((view, index) => [view, viewCountResults[index] ?? 0]),
+  ) as Record<(typeof viewValues)[number], number>;
 
 
 
@@ -408,12 +402,15 @@ const dataFetchWhere = {
         currentUserRole={dbUser.role}
         categories={categories}
         products={products}
-        totalCount={totalLeadsCount}
+        totalCount={totalCurrentCount}
         currentPage={currentPage}
         pageSize={PAGE_SIZE}
         totalLeads={totalLeads}
         totalEnquiry={totalEnquiry}
         activeTab={activeTab}
+        isManager={isManager}
+        activeView={activeView}
+        viewCounts={viewCounts}
         totalWon={totalWon}
         totalLost={totalLost}
       />
