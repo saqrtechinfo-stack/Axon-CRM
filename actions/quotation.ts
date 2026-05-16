@@ -33,6 +33,7 @@ export async function createQuotation(leadId: string, data: any) {
   });
   const sequence = String(count + 1).padStart(4, "0");
   const qId = `${prefix}/${dateStr}${sequence}`;
+  
 
   try {
     const quotation = await prisma.quotation.create({

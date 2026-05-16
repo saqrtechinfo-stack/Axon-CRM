@@ -106,6 +106,29 @@ export function QuotationSettings({ company }: { company: any }) {
           />
         </div>
       </div>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-blue-500" />
+
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-600">
+            Company Logo
+          </h3>
+        </div>
+
+        <p className="text-[11px] text-slate-400">
+          Upload your company logo for quotation PDFs.
+        </p>
+
+        {company.logo && (
+          <img
+            src={company.logo}
+            alt="Company Logo"
+            className="h-20 object-contain border border-slate-200 rounded-xl p-2 bg-white"
+          />
+        )}
+
+        <Input type="file" accept="image/*" className="bg-slate-50 text-xs" />
+      </div>
 
       {/* ── Section 2: Bank Details ── */}
       <div className="space-y-4">
