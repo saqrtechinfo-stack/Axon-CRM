@@ -22,6 +22,15 @@ model Company {
   contactPhone    String?
   subscriptionEnd DateTime?
   trialEndsAt     DateTime?
+  quotationPrefix String?             @default("QT")
+  quotationTerms  String?
+  bankName        String?
+  bankBranch      String?
+  accountNo       String?
+  iban            String?
+  swiftCode       String?
+  taxNumber       String?
+  signature       String?
   categories      Category[]
   clients         Client[]
   invitations     CompanyInvitation[]
@@ -335,23 +344,29 @@ model CompanyInvitation {
 }
 
 model Quotation {
-  id          String          @id @default(cuid())
-  qId         String          @unique
-  status      String          @default("DRAFT")
-  version     Int             @default(1)
-  subTotal    Float
-  taxAmount   Float           @default(0)
-  discount    Float           @default(0)
-  totalAmount Float
-  leadId      String
-  createdById String
-  companyId   String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  company     Company         @relation(fields: [companyId], references: [id])
-  createdBy   User            @relation("QuotationCreator", fields: [createdById], references: [id])
-  lead        Lead            @relation(fields: [leadId], references: [id])
-  items       QuotationItem[]
+  id            String          @id @default(cuid())
+  qId           String          @unique
+  status        String          @default("DRAFT")
+  version       Int             @default(1)
+  subTotal      Float
+  taxAmount     Float           @default(0)
+  discount      Float           @default(0)
+  totalAmount   Float
+  leadId        String
+  createdById   String
+  companyId     String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  subject       String?
+  attention     String?
+  notes         String?
+  validDays     Int             @default(15)
+  vatPercent    Float           @default(5)
+  termsOverride String?
+  company       Company         @relation(fields: [companyId], references: [id])
+  createdBy     User            @relation("QuotationCreator", fields: [createdById], references: [id])
+  lead          Lead            @relation(fields: [leadId], references: [id])
+  items         QuotationItem[]
 }
 
 model QuotationItem {

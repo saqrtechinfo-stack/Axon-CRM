@@ -1,36 +1,47 @@
-import React from 'react'
+// app/(dashboard)/quotations/page.tsx
+import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { QuotationsTable } from "@/components/QuotationsTable";
 
-const page = () => {
+export const dynamic = "force-dynamic";
+
+export default async function QuotationsPage() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, companyId: true, role: true },
+  });
+
+  if (!dbUser) redirect("/sign-in");
+
+  const quotations = await prisma.quotation.findMany({
+    where: { companyId: dbUser.companyId },
+    include: {
+      lead: {
+        select: { id: true, clientCompany: true, name: true },
+      },
+      createdBy: {
+        select: { id: true, name: true },
+      },
+      items: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <div className="max-w-xl w-full text-center bg-white/80 backdrop-blur-xl border border-slate-100 rounded-3xl shadow-lg p-10">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-50 to-purple-50 border border-slate-100 mb-6">
-          <span className="text-xs font-medium text-slate-500">
-            🚧 New Feature
-          </span>
-        </div>
-
-        {/* Heading */}
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-800 mb-3">
-          Coming Soon
+    <div className="space-y-6 p-4 md:p-8">
+      <div className="space-y-1">
+        <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
+          Quotations
         </h1>
-
-        {/* Gradient highlight */}
-        <p className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 mb-4">
-          We’re working on something awesome
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+          All proposals and quotes
         </p>
-
-        {/* Description */}
-        <p className="text-slate-500 text-sm md:text-base mb-8">
-          This feature is currently under development. It will be available soon
-          to enhance your HRM experience.
-        </p>
-
-        
       </div>
+      <QuotationsTable quotations={quotations} />
     </div>
   );
 }
-
-export default page

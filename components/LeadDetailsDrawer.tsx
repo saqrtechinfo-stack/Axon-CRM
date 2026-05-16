@@ -39,6 +39,7 @@ import { Badge } from "./ui/badge";
 import { LeadFollowUps } from "./LeadFollowUps";
 import { RelatedLeads } from "./RelatedLeads";
 import { LeadAttachments } from "./LeadAttachments";
+import { LeadQuotations } from "./LeadQuotations";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export function LeadDetailsDrawer({
@@ -85,6 +86,11 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
 
   const { data: followUps = [], mutate: mutateFollowUps } = useSWR(
     isOpen && lead?.id ? `/api/leads/${lead.id}/followups` : null,
+    fetcher,
+  );
+
+  const { data: quotations = [], mutate: mutateQuotations } = useSWR(
+    isOpen && lead?.id ? `/api/leads/${lead.id}/quotations` : null,
     fetcher,
   );
 
@@ -337,6 +343,12 @@ const { data: attachments = [], mutate: mutateAttachments } = useSWR(
                 leadId={lead.id}
                 attachments={attachments}
                 onUpdate={mutateAttachments}
+              />
+              {/* Lead Quotation */}
+              <LeadQuotations
+                lead={lead}
+                quotations={quotations}
+                onUpdate={mutateQuotations}
               />
               {/* Lead followUps */}
               <LeadFollowUps

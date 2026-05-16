@@ -6,6 +6,7 @@
 
 "use server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 export async function updateCompanyERPConfig(
@@ -20,4 +21,45 @@ export async function updateCompanyERPConfig(
     },
   });
   revalidatePath("/settings");
+}
+
+export async function updateCompanyQuotationSettings(data: any) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { companyId: true, role: true },
+  });
+
+  // Only admin can change company settings
+  if (!["ADMIN", "SUPER_ADMIN"].includes(dbUser?.role || "")) {
+    return { success: false, error: "Insufficient permissions" };
+  }
+
+  try {
+    await prisma.company.update({
+      where: { id: dbUser!.companyId },
+      data: {
+        quotationPrefix: data.quotationPrefix,
+        defaultValidDays: parseInt(data.defaultValidDays),
+        defaultVatPercent: parseFloat(data.defaultVatPercent),
+        accountName: data.accountName,
+        bankName: data.bankName,
+        bankBranch: data.bankBranch,
+        accountNo: data.accountNo,
+        iban: data.iban,
+        swiftCode: data.swiftCode,
+        website: data.website,
+        quotationFooter: data.quotationFooter,
+        quotationTerms: data.quotationTerms,
+      },
+    });
+
+    revalidatePath("/settings");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "Failed to save settings" };
+  }
 }

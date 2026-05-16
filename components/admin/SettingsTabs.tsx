@@ -18,6 +18,7 @@ import { DesignationTab } from "./settings/DesignationTab";
 import { ERPConfigForm } from "./settings/ERPConfigForm";
 import { DepartmentTab } from "./settings/DepartmentTab";
 import CompanySetting from "./settings/CompanySetting";
+import { QuotationSettings } from "./settings/QuotationSettings";
 
 
 interface Company {
@@ -71,17 +72,17 @@ export function SettingsTabs({
           Designations
         </TabsTrigger>
         <TabsTrigger
-          value="team"
+          value="quotation"
           className="flex items-center gap-2 py-2 text-xs font-bold uppercase tracking-tight"
         >
           <Users className="h-4 w-4" />
-          Team
+          Quotation
         </TabsTrigger>
         <TabsTrigger
           value="erp-config"
           className="data-[state=active]:bg-slate-900 data-[state=active]:text-white"
         >
-          <Settings2Icon /> Company 
+          <Settings2Icon /> Company
         </TabsTrigger>
         <TabsTrigger
           value="company"
@@ -120,24 +121,8 @@ export function SettingsTabs({
         <DesignationTab designations={designations} />
       </TabsContent>
 
-      <TabsContent value="team">
-        <Card className="rounded-3xl border-slate-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl font-black italic tracking-tighter uppercase">
-              Team Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-32 text-slate-500">
-              <div className="text-center">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50 text-indigo-500" />
-                <p className="font-medium uppercase text-[10px] tracking-widest text-slate-400">
-                  Team settings coming soon
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <TabsContent value="quotation">
+        <QuotationSettings company={company} />
       </TabsContent>
 
       <TabsContent value="company">
