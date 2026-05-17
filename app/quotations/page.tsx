@@ -1,4 +1,4 @@
-// app/(dashboard)/quotations/page.tsx
+// app/quotations/page.tsx
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";

@@ -11,11 +11,9 @@ import {
   Send,
   CheckCircle,
   XCircle,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { QuotationBuilder } from "./QuotationBuilder";
 import { deleteQuotation, updateQuotationStatus } from "@/actions/quotation";

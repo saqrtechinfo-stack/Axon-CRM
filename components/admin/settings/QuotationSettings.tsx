@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { updateCompanyQuotationSettings } from "@/actions/company-actions";
 import {
   FileText,
   Building2,
@@ -15,6 +14,7 @@ import {
   Save,
   Loader2,
 } from "lucide-react";
+import { updateCompanyQuotationSettings } from "@/actions/quotation";
 
 export function QuotationSettings({ company }: { company: any }) {
   const [loading, setLoading] = useState(false);
