@@ -1,4 +1,3 @@
-
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -99,10 +98,7 @@ function numberToWords(num: number): string {
     if (n < 20) return ones[n];
 
     if (n < 100)
-      return (
-        tens[Math.floor(n / 10)] +
-        (n % 10 ? " " + ones[n % 10] : "")
-      );
+      return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
 
     if (n < 1000)
       return (
@@ -556,21 +552,15 @@ function QuotationPDF({
           <View style={styles.toSection}>
             <Text style={styles.label}>TO</Text>
 
-            <Text style={styles.companyName}>
-              {lead.clientCompany || "-"}
-            </Text>
+            <Text style={styles.companyName}>{lead.clientCompany || "-"}</Text>
 
-            {lead.address && (
-              <Text style={styles.line}>{lead.address}</Text>
-            )}
+            {lead.address && <Text style={styles.line}>{lead.address}</Text>}
 
             <Text style={styles.line}>
               Kind Attn: {q.attention || lead.name || "-"}
             </Text>
 
-            {lead.phone && (
-              <Text style={styles.line}>Phone: {lead.phone}</Text>
-            )}
+            {lead.phone && <Text style={styles.line}>Phone: {lead.phone}</Text>}
           </View>
 
           {/* SUBJECT */}
@@ -599,22 +589,15 @@ function QuotationPDF({
             {q.items.map((item: any, idx: number) => (
               <View
                 key={item.id}
-                style={[
-                  styles.row,
-                  idx % 2 === 1 ? styles.rowAlt : {},
-                ]}
+                style={[styles.row, idx % 2 === 1 ? styles.rowAlt : {}]}
               >
                 <Text style={[styles.td, styles.c1]}>
                   {String(idx + 1).padStart(2, "0")}
                 </Text>
 
-                <Text style={[styles.td, styles.c2]}>
-                  {item.description}
-                </Text>
+                <Text style={[styles.td, styles.c2]}>{item.description}</Text>
 
-                <Text style={[styles.td, styles.c3]}>
-                  {item.quantity}
-                </Text>
+                <Text style={[styles.td, styles.c3]}>{item.quantity}</Text>
 
                 <Text style={[styles.td, styles.c4]}>
                   AED {item.unitPrice.toFixed(2)}
@@ -692,14 +675,12 @@ function QuotationPDF({
           )}
 
           {/* SYSTEM REQUIREMENTS */}
-          {(q.systemRequirements ||
-            co.quotationSystemRequirements) && (
+          {(q.systemRequirements || co.quotationSystemRequirements) && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>System Requirements</Text>
 
               <Text style={styles.noteText}>
-                {q.systemRequirements ||
-                  co.quotationSystemRequirements}
+                {q.systemRequirements || co.quotationSystemRequirements}
               </Text>
             </View>
           )}
@@ -707,9 +688,7 @@ function QuotationPDF({
           {/* TERMS */}
           {termLines.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Terms and Conditions
-              </Text>
+              <Text style={styles.sectionTitle}>Terms and Conditions</Text>
 
               {termLines.map((line: string, i: number) => (
                 <View key={i} style={styles.termRow}>
@@ -769,21 +748,15 @@ function QuotationPDF({
             </Text>
 
             {co.signatoryTitle && (
-              <Text style={styles.signDetail}>
-                {co.signatoryTitle}
-              </Text>
+              <Text style={styles.signDetail}>{co.signatoryTitle}</Text>
             )}
 
             {co.signatoryEmail && (
-              <Text style={styles.signDetail}>
-                {co.signatoryEmail}
-              </Text>
+              <Text style={styles.signDetail}>{co.signatoryEmail}</Text>
             )}
 
             {co.signatoryPhone && (
-              <Text style={styles.signDetail}>
-                {co.signatoryPhone}
-              </Text>
+              <Text style={styles.signDetail}>{co.signatoryPhone}</Text>
             )}
           </View>
         </View>
@@ -814,10 +787,7 @@ export async function GET(
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -830,10 +800,7 @@ export async function GET(
     });
 
     if (!dbUser) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const quotation = await prisma.quotation.findFirst({
@@ -913,4 +880,3 @@ export async function GET(
     );
   }
 }
-
