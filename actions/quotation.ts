@@ -125,36 +125,42 @@ export async function updateQuotation(quotationId: string, data: any) {
       return { success: true, data: newQuotation, newVersion: true };
     }
 
-    // DRAFT — edit in place, delete old items and recreate
-    await prisma.$transaction([
-      // Delete existing items
-      prisma.quotationItem.deleteMany({
-        where: { quotationId },
-      }),
-      // Update quotation
-      prisma.quotation.update({
-        where: { id: quotationId },
-        data: {
-          subject: data.subject,
-          attention: data.attention,
-          notes: data.notes,
-          subTotal: parseFloat(data.subTotal) || 0,
-          taxAmount: parseFloat(data.taxAmount) || 0,
-          discount: parseFloat(data.discount) || 0,
-          totalAmount: parseFloat(data.totalAmount) || 0,
-          validDays: data.validDays || 15,
-          vatPercent: data.vatPercent || 5,
-          items: {
-            create: data.items.map((item: any) => ({
-              description: item.description,
-              quantity: parseFloat(item.quantity),
-              unitPrice: parseFloat(item.unitPrice),
-              total: parseFloat(item.quantity) * parseFloat(item.unitPrice),
-            })),
-          },
-        },
-      }),
-    ]);
+    // DRAFT — edit in place
+    // Step A: Update quotation fields
+    await prisma.quotation.update({
+      where: { id: quotationId },
+      data: {
+        subject: data.subject,
+        attention: data.attention,
+        notes: data.notes,
+        termsOverride: data.termsOverride || null,
+        hostingNote: data.hostingNote || null,
+        systemRequirements: data.systemRequirements || null,
+        subTotal: parseFloat(data.subTotal) || 0,
+        taxAmount: parseFloat(data.taxAmount) || 0,
+        discount: parseFloat(data.discount) || 0,
+        totalAmount: parseFloat(data.totalAmount) || 0,
+        validDays: parseInt(String(data.validDays)) || 15,
+        vatPercent: parseFloat(String(data.vatPercent)) || 5,
+      },
+    });
+
+    // Step B: Delete old items
+    await prisma.quotationItem.deleteMany({
+      where: { quotationId },
+    });
+
+    // Step C: Create new items
+    await prisma.quotationItem.createMany({
+      data: data.items.map((item: any) => ({
+        quotationId,
+        description: item.description,
+        quantity: parseFloat(item.quantity) || 1,
+        unitPrice: parseFloat(item.unitPrice) || 0,
+        total:
+          (parseFloat(item.quantity) || 1) * (parseFloat(item.unitPrice) || 0),
+      })),
+    });
 
     revalidatePath("/enquiries");
     return { success: true };
@@ -283,6 +289,12 @@ export async function updateCompanyQuotationSettings(data: any) {
         website: data.website,
         quotationFooter: data.quotationFooter,
         quotationTerms: data.quotationTerms,
+        signatoryName: data.signatoryName, // ✅ add
+        signatoryTitle: data.signatoryTitle, // ✅ add
+        signatoryEmail: data.signatoryEmail, // ✅ add
+        signatoryPhone: data.signatoryPhone, // ✅ add
+        logo: data.logo || undefined, // ✅ add — only update if provided
+        signature: data.signature || undefined, // ✅ add — only update if provided
       },
     });
 

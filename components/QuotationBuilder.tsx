@@ -47,6 +47,10 @@ export function QuotationBuilder({
 }: QuotationBuilderProps) {
   const isEditing = !!existingQuotation;
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsOverride, setTermsOverride] = useState(
+    existingQuotation?.termsOverride || "",
+  );
+
 
   // Form state
   const [subject, setSubject] = useState(existingQuotation?.subject || "");
@@ -150,6 +154,7 @@ export function QuotationBuilder({
       subTotal,
       taxAmount: vatAmount,
       totalAmount: grandTotal,
+      termsOverride: termsOverride || null,
       items: items.map((item) => ({
         ...item,
         quantity: parseFloat(String(item.quantity)) || 1,
@@ -406,31 +411,18 @@ export function QuotationBuilder({
         </div>
       </div>
 
-      {/* Options */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase text-slate-400">
-            Valid For (Days)
-          </Label>
+      {/* Add after Grand Total div */}
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        <span className="text-slate-500 font-medium text-sm">Valid For</span>
+        <div className="flex items-center gap-2">
           <Input
             type="number"
             min="1"
             value={validDays}
             onChange={(e) => setValidDays(e.target.value)}
-            className="bg-slate-50 border-slate-200 h-9"
+            className="w-16 h-7 text-xs text-center bg-white border-slate-200"
           />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase text-slate-400">
-            VAT %
-          </Label>
-          <Input
-            type="number"
-            min="0"
-            value={vatPercent}
-            onChange={(e) => setVatPercent(e.target.value)}
-            className="bg-slate-50 border-slate-200 h-9"
-          />
+          <span className="text-xs text-slate-400">days</span>
         </div>
       </div>
 
@@ -447,7 +439,21 @@ export function QuotationBuilder({
           className="w-full bg-slate-50 rounded-xl border border-slate-200 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         />
       </div>
-
+      <div className="space-y-2">
+        <Label className="text-[10px] font-black uppercase text-slate-400">
+          Custom Terms & Conditions
+          <span className="ml-2 text-[9px] normal-case font-normal text-slate-300">
+            (leave blank to use company default)
+          </span>
+        </Label>
+        <textarea
+          value={termsOverride}
+          onChange={(e) => setTermsOverride(e.target.value)}
+          rows={4}
+          placeholder="Override T&C for this specific quotation..."
+          className="w-full bg-slate-50 rounded-xl border border-slate-200 p-3 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+        />
+      </div>
       {/* Actions */}
       <div className="flex gap-3 pt-2">
         <Button
