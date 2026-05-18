@@ -16,7 +16,7 @@ import path from "path";
 export const runtime = "nodejs";
 
 // ─────────────────────────────────────────────
-// FONT
+// FONT style
 // ─────────────────────────────────────────────
 Font.register({
   family: "Inter",

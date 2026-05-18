@@ -1,4 +1,4 @@
-// components/settings/QuotationSettings.tsx
+// components/settings/QuotationSettings.tsxs
 "use client";
 
 import { useRef, useState } from "react";

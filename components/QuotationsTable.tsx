@@ -60,8 +60,8 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-scroll shadow-sm">
+        <table className="w-full ">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               {[
