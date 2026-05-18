@@ -1,4 +1,4 @@
-// components/QuotationsTable.tsx
+// components/QuotationsTable.tsxs
 "use client";
 
 import { useState } from "react";
@@ -62,6 +62,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-scroll shadow-sm">
         <table className="w-full ">
+
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               {[
