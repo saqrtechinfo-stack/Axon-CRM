@@ -160,13 +160,7 @@ export function QuotationSettings({ company }: { company: any }) {
           Upload your company logo for quotation PDFs.
         </p>
 
-        {company.logo && (
-          <img
-            src={company.logo}
-            alt="Company Logo"
-            className="h-20 object-contain border border-slate-200 rounded-xl p-2 bg-white"
-          />
-        )}
+  
 
         {/* Company Logo section — replace existing Input */}
         {logoPreview && (

@@ -1,3 +1,4 @@
+
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -9,10 +10,51 @@ import {
   StyleSheet,
   pdf,
   Image,
+  Font,
 } from "@react-pdf/renderer";
+import path from "path";
+
+export const runtime = "nodejs";
 
 // ─────────────────────────────────────────────
-// HELPER: Number to words (UAE format)
+// FONT
+// ─────────────────────────────────────────────
+Font.register({
+  family: "Inter",
+  fonts: [
+    {
+      src: path.join(process.cwd(), "public/fonts/Inter_28pt-Regular.ttf"),
+      fontStyle: "normal",
+      fontWeight: 400,
+    },
+    {
+      src: path.join(process.cwd(), "public/fonts/Inter_24pt-Bold.ttf"),
+      fontStyle: "normal",
+      fontWeight: 700,
+    },
+  ],
+});
+
+// ─────────────────────────────────────────────
+// HELPER: Convert image URL → Base64
+// ─────────────────────────────────────────────
+async function imageToBase64(url: string) {
+  try {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+    const contentType = response.headers.get("content-type") || "image/png";
+
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error("IMAGE_CONVERSION_ERROR", error);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// NUMBER TO WORDS
 // ─────────────────────────────────────────────
 function numberToWords(num: number): string {
   const ones = [
@@ -37,6 +79,7 @@ function numberToWords(num: number): string {
     "Eighteen",
     "Nineteen",
   ];
+
   const tens = [
     "",
     "",
@@ -52,27 +95,36 @@ function numberToWords(num: number): string {
 
   function convert(n: number): string {
     if (n === 0) return "";
+
     if (n < 20) return ones[n];
+
     if (n < 100)
-      return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
+      return (
+        tens[Math.floor(n / 10)] +
+        (n % 10 ? " " + ones[n % 10] : "")
+      );
+
     if (n < 1000)
       return (
         ones[Math.floor(n / 100)] +
         " Hundred" +
         (n % 100 ? " " + convert(n % 100) : "")
       );
+
     if (n < 100000)
       return (
         convert(Math.floor(n / 1000)) +
         " Thousand" +
         (n % 1000 ? " " + convert(n % 1000) : "")
       );
+
     if (n < 10000000)
       return (
         convert(Math.floor(n / 100000)) +
         " Lakh" +
         (n % 100000 ? " " + convert(n % 100000) : "")
       );
+
     return (
       convert(Math.floor(n / 10000000)) +
       " Crore" +
@@ -82,354 +134,394 @@ function numberToWords(num: number): string {
 
   const intPart = Math.floor(num);
   const decPart = Math.round((num - intPart) * 100);
+
   let result = convert(intPart) || "Zero";
+
   result += " UAE Dirhams";
-  if (decPart > 0) result += " and " + convert(decPart) + " Fils";
+
+  if (decPart > 0) {
+    result += " and " + convert(decPart) + " Fils";
+  }
+
   return result + " Only/-";
 }
 
 // ─────────────────────────────────────────────
 // COLORS
 // ─────────────────────────────────────────────
-const DARK = "#1a1a2e";
-const WHITE = "#ffffff";
-const LIGHT_GRAY = "#f8f9fa";
-const BORDER = "#dddddd";
-const TEXT_DARK = "#222222";
-const TEXT_GRAY = "#555555";
-const TEXT_LIGHT = "#888888";
+const PRIMARY = "#111827";
+const SECONDARY = "#374151";
+const LIGHT = "#F9FAFB";
+const BORDER = "#E5E7EB";
+const TEXT = "#1F2937";
+const MUTED = "#6B7280";
+const WHITE = "#FFFFFF";
 
 // ─────────────────────────────────────────────
 // STYLES
 // ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   page: {
-    fontFamily: "Helvetica",
+    fontFamily: "Inter",
     fontSize: 9,
-    color: TEXT_DARK,
-    paddingBottom: 56, // space for fixed footer
+    color: TEXT,
+    backgroundColor: WHITE,
+    paddingBottom: 70,
   },
 
-  // ── Header ──────────────────────────────────
+  body: {
+    paddingTop: 20,
+    paddingHorizontal: 42,
+  },
+
+  // HEADER
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingHorizontal: 36,
+    paddingHorizontal: 42,
     paddingTop: 28,
     paddingBottom: 18,
-    borderBottomWidth: 2,
-    borderBottomColor: DARK,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    marginBottom: 20,
   },
+
   logoImage: {
-    width: 150,
+    width: 170,
     height: 60,
     objectFit: "contain",
-    objectPosition: "left center",
   },
+
   logoFallback: {
-    fontSize: 15,
-    fontFamily: "Helvetica-Bold",
-    color: DARK,
+    fontSize: 22,
+    fontFamily: "Inter",
+    color: PRIMARY,
   },
-  headerRight: {
+
+  proposalBlock: {
     alignItems: "flex-end",
   },
+
   proposalTitle: {
-    fontSize: 20,
-    fontFamily: "Helvetica-Bold",
-    letterSpacing: 3,
-    color: TEXT_DARK,
-    textDecoration: "underline",
-    marginBottom: 6,
-  },
-  headerMeta: {
-    fontSize: 9,
-    color: TEXT_GRAY,
-    marginBottom: 2,
-  },
-  headerMetaBold: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
+    fontSize: 22,
+    fontFamily: "Inter",
+    color: PRIMARY,
+    marginBottom: 8,
   },
 
-  // ── Body padding ─────────────────────────────
-  body: {
-    paddingHorizontal: 36,
-  },
-
-  // ── TO section ───────────────────────────────
-  toSection: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  toLabel: {
+  proposalMeta: {
     fontSize: 9,
-    fontFamily: "Helvetica-Bold",
+    color: MUTED,
     marginBottom: 3,
   },
-  toCompany: {
+
+  proposalMetaBold: {
     fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 2,
-    textTransform: "uppercase",
+    color: PRIMARY,
+    fontFamily: "Inter",
   },
-  toLine: {
-    fontSize: 9,
-    color: TEXT_GRAY,
-    marginBottom: 1,
+
+  // CLIENT SECTION
+  toSection: {
+    marginBottom: 24,
   },
-  toBold: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 1,
+
+  label: {
+    fontSize: 8,
+    color: MUTED,
+    marginBottom: 6,
+    letterSpacing: 0.5,
   },
-  subjectLine: {
+
+  companyName: {
+    fontSize: 13,
+    fontFamily: "Inter",
+    marginBottom: 4,
+    color: PRIMARY,
+  },
+
+  line: {
     fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 8,
+    color: SECONDARY,
+    marginBottom: 3,
+    lineHeight: 1.5,
+  },
+
+  subject: {
+    fontSize: 10,
+    fontFamily: "Inter",
+    color: PRIMARY,
+    marginBottom: 20,
+    marginTop: 10,
+  },
+
+  paragraph: {
+    fontSize: 9,
+    color: SECONDARY,
+    lineHeight: 1.8,
     marginBottom: 14,
   },
 
-  // ── Body text ────────────────────────────────
-  bodyPara: {
-    fontSize: 9,
-    color: TEXT_GRAY,
-    lineHeight: 1.6,
-    marginBottom: 10,
-  },
-
-  // ── Table ────────────────────────────────────
+  // TABLE
   table: {
     borderWidth: 1,
     borderColor: BORDER,
-    marginTop: 4,
+    borderRadius: 6,
+    overflow: "hidden",
+    marginTop: 14,
   },
-  tableHeaderRow: {
+
+  tableHeader: {
     flexDirection: "row",
-    backgroundColor: DARK,
-    paddingVertical: 7,
-    paddingHorizontal: 6,
+    backgroundColor: PRIMARY,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    alignItems: "center",
   },
-  tableHeaderCell: {
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8.5,
+
+  th: {
+    fontSize: 8,
     color: WHITE,
+    fontFamily: "Inter",
+    textTransform: "uppercase",
+  },
+
+  row: {
+    flexDirection: "row",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    minHeight: 42,
+    alignItems: "center",
+  },
+
+  rowAlt: {
+    backgroundColor: LIGHT,
+  },
+
+  td: {
+    fontSize: 8.5,
+    color: SECONDARY,
+    lineHeight: 1.6,
+  },
+
+  c1: {
+    width: "8%",
     textAlign: "center",
   },
-  tableRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    paddingVertical: 7,
-    paddingHorizontal: 6,
-    minHeight: 28,
-  },
-  tableRowAlt: {
-    backgroundColor: LIGHT_GRAY,
-  },
-  cellText: {
-    fontSize: 8.5,
-    color: TEXT_GRAY,
-  },
-  cellBold: {
-    fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
+
+  c2: {
+    width: "46%",
+    paddingRight: 8,
   },
 
-  // column widths
-  cSl: { width: "7%", textAlign: "center" },
-  cDesc: { width: "50%", paddingRight: 8 },
-  cUnit: { width: "10%", textAlign: "center" },
-  cRate: { width: "16%", textAlign: "right" },
-  cAmt: { width: "17%", textAlign: "right" },
+  c3: {
+    width: "12%",
+    textAlign: "center",
+  },
 
-  // ── Totals rows (inside table) ────────────────
+  c4: {
+    width: "17%",
+    textAlign: "right",
+  },
+
+  c5: {
+    width: "17%",
+    textAlign: "right",
+  },
+
+  // TOTAL BOX
+  totalsWrapper: {
+    alignItems: "flex-end",
+    marginTop: 20,
+    marginBottom: 18,
+  },
+
+  totalsBox: {
+    width: 260,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
   totalRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
   },
-  totalSpacer: { width: "83%" },
+
   totalLabel: {
-    width: "10%",
-    fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
-    textAlign: "right",
-    paddingRight: 8,
+    fontSize: 9,
+    color: SECONDARY,
   },
+
   totalValue: {
-    width: "17%",
-    fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
-    textAlign: "right",
-    paddingRight: 4,
+    fontSize: 9,
+    color: PRIMARY,
   },
-  grandTotalRow: {
+
+  grandRow: {
     flexDirection: "row",
-    backgroundColor: DARK,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: PRIMARY,
   },
-  grandTotalLabel: {
-    width: "10%",
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
+
+  grandLabel: {
+    fontSize: 10,
     color: WHITE,
-    textAlign: "right",
-    paddingRight: 8,
   },
-  grandTotalValue: {
-    width: "17%",
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
+
+  grandValue: {
+    fontSize: 10,
     color: WHITE,
-    textAlign: "right",
-    paddingRight: 4,
   },
+
   amountWords: {
+    marginTop: 10,
     fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 8,
-    marginBottom: 4,
-    color: TEXT_DARK,
+    color: PRIMARY,
+    lineHeight: 1.7,
   },
 
-  // ── Section headings ──────────────────────────
-  sectionHeading: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    textDecoration: "underline",
-    marginBottom: 6,
-    marginTop: 16,
-    color: TEXT_DARK,
+  // SECTION
+  section: {
+    marginTop: 24,
   },
 
-  // ── Body note (hosting/system req) ───────────
+  sectionTitle: {
+    fontSize: 11,
+    color: PRIMARY,
+    marginBottom: 10,
+  },
+
   noteText: {
     fontSize: 8.5,
-    color: TEXT_GRAY,
-    lineHeight: 1.6,
-    marginBottom: 4,
+    color: SECONDARY,
+    lineHeight: 1.8,
   },
 
-  // ── Terms ────────────────────────────────────
-  termItem: {
-    fontSize: 8.5,
-    color: TEXT_GRAY,
-    lineHeight: 1.6,
-    marginBottom: 3,
+  // TERMS
+  termRow: {
     flexDirection: "row",
+    marginBottom: 7,
+    alignItems: "flex-start",
   },
-  termNumber: {
-    width: 20,
+
+  termIndex: {
+    width: 18,
     fontSize: 8.5,
-    color: TEXT_GRAY,
+    color: PRIMARY,
   },
+
   termText: {
     flex: 1,
     fontSize: 8.5,
-    color: TEXT_GRAY,
-    lineHeight: 1.6,
+    color: SECONDARY,
+    lineHeight: 1.7,
   },
 
-  // ── Bank details ──────────────────────────────
+  // BANK
   bankRow: {
     flexDirection: "row",
-    marginBottom: 3,
-  },
-  bankLabel: {
-    width: 100,
-    fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
-  },
-  bankValue: {
-    fontSize: 8.5,
-    color: TEXT_GRAY,
+    marginBottom: 6,
   },
 
-  // ── Signature ─────────────────────────────────
-  signatureSection: {
-    marginTop: 20,
+  bankLabel: {
+    width: 130,
+    fontSize: 8.5,
+    color: PRIMARY,
   },
+
+  bankValue: {
+    flex: 1,
+    fontSize: 8.5,
+    color: SECONDARY,
+  },
+
+  // SIGNATURE
+  signatureSection: {
+    marginTop: 30,
+  },
+
   signatureImage: {
     width: 130,
-    height: 45,
+    height: 50,
     objectFit: "contain",
-    marginVertical: 6,
-  },
-  signerName: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    color: TEXT_DARK,
-    marginBottom: 1,
-  },
-  signerDetail: {
-    fontSize: 8.5,
-    color: TEXT_GRAY,
-    marginBottom: 1,
+    marginVertical: 8,
   },
 
-  // ── Footer (fixed) ───────────────────────────
+  signName: {
+    fontSize: 10,
+    color: PRIMARY,
+    marginBottom: 2,
+  },
+
+  signDetail: {
+    fontSize: 8.5,
+    color: MUTED,
+    marginBottom: 2,
+  },
+
+  // FOOTER
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: DARK,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    backgroundColor: LIGHT,
+    paddingHorizontal: 42,
+    paddingVertical: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 36,
-    paddingVertical: 10,
   },
-  footerLeft: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    color: WHITE,
+
+  footerText: {
+    fontSize: 8,
+    color: MUTED,
   },
-  footerRight: {
-    flexDirection: "row",
-    gap: 14,
-  },
-  footerItem: {
-    fontSize: 7.5,
-    color: "#aabbcc",
+
+  pageNumber: {
+    position: "absolute",
+    bottom: 14,
+    right: 42,
+    fontSize: 8,
+    color: MUTED,
   },
 });
 
 // ─────────────────────────────────────────────
-// PDF DOCUMENT COMPONENT
+// PDF DOCUMENT
 // ─────────────────────────────────────────────
-function QuotationPDF({ q }: { q: any }) {
+function QuotationPDF({
+  q,
+  logo,
+  signature,
+}: {
+  q: any;
+  logo: string | null;
+  signature: string | null;
+}) {
   const co = q.company;
   const lead = q.lead;
-  // Resolve terms — per-quotation override takes priority
-  const rawTerms: string = q.termsOverride || co.quotationTerms || "";
+
+  const rawTerms = q.termsOverride || co.quotationTerms || "";
+
   const termLines = rawTerms
     .split("\n")
     .map((l: string) => l.trim())
     .filter(Boolean);
 
-  // Validity note for footer of terms
-  const validityNote =
-    co.quotationFooter ||
-    `The validity of this proposal is for ${q.validDays || 15} days only.`;
-
-  // Signatory — per-quotation createdBy or company signatory
-  const signatoryName = co.signatoryName || q.createdBy?.name || co.name;
-  const signatoryTitle = co.signatoryTitle || "";
-  const signatoryEmail = co.signatoryEmail || co.contactEmail || "";
-  const signatoryPhone = co.signatoryPhone || co.contactPhone || "";
-
-  // Format date like "16 MAY 2026"
   const dateStr = new Date(q.createdAt)
     .toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -440,199 +532,189 @@ function QuotationPDF({ q }: { q: any }) {
 
   return (
     <Document>
-      <Page size="A4" style={styles.page} wrap>
-        {/* ════════════════════════════════════
-            HEADER — Logo left, Proposal right
-            ════════════════════════════════════ */}
-        <View style={styles.header} fixed>
-          {/* Logo */}
+      {/* PAGE 1 */}
+      <Page size="A4" style={styles.page}>
+        {/* HEADER */}
+        <View style={styles.header}>
           <View>
-            {co.logo ? (
-              <Image style={styles.logoImage} src={co.logo} />
+            {logo ? (
+              <Image src={logo} style={styles.logoImage} />
             ) : (
               <Text style={styles.logoFallback}>{co.name}</Text>
             )}
           </View>
 
-          {/* Proposal meta */}
-          <View style={styles.headerRight}>
+          <View style={styles.proposalBlock}>
             <Text style={styles.proposalTitle}>PROPOSAL</Text>
-            <Text style={styles.headerMetaBold}>NO: {q.qId}</Text>
-            <Text style={styles.headerMeta}>DATE: {dateStr}</Text>
+            <Text style={styles.proposalMetaBold}>NO: {q.qId}</Text>
+            <Text style={styles.proposalMeta}>DATE: {dateStr}</Text>
           </View>
         </View>
 
-        {/* ════════════════════════════════════
-            BODY
-            ════════════════════════════════════ */}
         <View style={styles.body}>
-          {/* TO section */}
+          {/* CLIENT */}
           <View style={styles.toSection}>
-            <Text style={styles.toLabel}>TO,</Text>
-            <Text style={styles.toCompany}>{lead.clientCompany || "—"}</Text>
-            {lead.address ? (
-              <Text style={styles.toLine}>{lead.address}</Text>
-            ) : null}
-            <Text style={styles.toBold}>
-              Kind Attn: {q.attention || lead.name || "—"}
+            <Text style={styles.label}>TO</Text>
+
+            <Text style={styles.companyName}>
+              {lead.clientCompany || "-"}
             </Text>
-            {lead.phone ? (
-              <Text style={styles.toBold}>Ph: {lead.phone}</Text>
-            ) : null}
+
+            {lead.address && (
+              <Text style={styles.line}>{lead.address}</Text>
+            )}
+
+            <Text style={styles.line}>
+              Kind Attn: {q.attention || lead.name || "-"}
+            </Text>
+
+            {lead.phone && (
+              <Text style={styles.line}>Phone: {lead.phone}</Text>
+            )}
           </View>
 
-          {/* Subject */}
-          <Text style={styles.subjectLine}>Subject: {q.subject || "—"}</Text>
+          {/* SUBJECT */}
+          <Text style={styles.subject}>
+            Subject: {q.subject || "Quotation Proposal"}
+          </Text>
 
-          {/* Salutation */}
-          <Text style={styles.bodyPara}>Dear Sir,</Text>
+          {/* INTRO */}
+          <Text style={styles.paragraph}>Dear Sir,</Text>
 
-          {/* Covering note */}
-          {q.notes ? (
-            <Text style={styles.bodyPara}>{q.notes}</Text>
-          ) : (
-            <Text style={styles.bodyPara}>
-              We are pleased to submit our proposal as follows, based on our
-              recent discussions.
-            </Text>
-          )}
+          <Text style={styles.paragraph}>
+            {q.notes ||
+              "We are pleased to submit our proposal based on our recent discussions and requirements shared with us."}
+          </Text>
 
-          {/* ════════════════════════════════════
-              ITEMS TABLE
-              ════════════════════════════════════ */}
+          {/* TABLE */}
           <View style={styles.table}>
-            {/* Table header */}
-            <View style={styles.tableHeaderRow}>
-              <Text style={[styles.tableHeaderCell, styles.cSl]}>
-                SL{"\n"}NO
-              </Text>
-              <Text style={[styles.tableHeaderCell, styles.cDesc]}>
-                SCOPE OF WORK
-              </Text>
-              <Text style={[styles.tableHeaderCell, styles.cUnit]}>UNIT</Text>
-              <Text style={[styles.tableHeaderCell, styles.cRate]}>
-                RATE PER{"\n"}UNIT
-              </Text>
-              <Text style={[styles.tableHeaderCell, styles.cAmt]}>AMOUNT</Text>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.th, styles.c1]}>SL</Text>
+              <Text style={[styles.th, styles.c2]}>Scope of Work</Text>
+              <Text style={[styles.th, styles.c3]}>Qty</Text>
+              <Text style={[styles.th, styles.c4]}>Unit Price</Text>
+              <Text style={[styles.th, styles.c5]}>Amount</Text>
             </View>
 
-            {/* Item rows */}
             {q.items.map((item: any, idx: number) => (
               <View
                 key={item.id}
                 style={[
-                  styles.tableRow,
-                  idx % 2 === 1 ? styles.tableRowAlt : {},
+                  styles.row,
+                  idx % 2 === 1 ? styles.rowAlt : {},
                 ]}
-                wrap={false}
               >
-                <Text style={[styles.cellText, styles.cSl]}>
+                <Text style={[styles.td, styles.c1]}>
                   {String(idx + 1).padStart(2, "0")}
                 </Text>
-                <Text style={[styles.cellText, styles.cDesc]}>
+
+                <Text style={[styles.td, styles.c2]}>
                   {item.description}
                 </Text>
-                <Text style={[styles.cellText, styles.cUnit]}>
-                  {Number.isInteger(item.quantity)
-                    ? item.quantity
-                    : item.quantity.toFixed(2)}
+
+                <Text style={[styles.td, styles.c3]}>
+                  {item.quantity}
                 </Text>
-                <Text style={[styles.cellText, styles.cRate]}>
-                  {item.unitPrice.toLocaleString("en-AE", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+
+                <Text style={[styles.td, styles.c4]}>
+                  AED {item.unitPrice.toFixed(2)}
                 </Text>
-                <Text style={[styles.cellText, styles.cAmt]}>
-                  {item.total.toLocaleString("en-AE", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+
+                <Text style={[styles.td, styles.c5]}>
+                  AED {item.total.toFixed(2)}
                 </Text>
               </View>
             ))}
+          </View>
 
-            {/* TOTAL row */}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalSpacer} />
-              <Text style={styles.totalLabel}>TOTAL</Text>
-              <Text style={styles.totalValue}>
-                {q.subTotal.toLocaleString("en-AE", {
-                  minimumFractionDigits: 2,
-                })}
-              </Text>
-            </View>
-
-            {/* VAT row */}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalSpacer} />
-              <Text style={styles.totalLabel}>VAT {q.vatPercent}%</Text>
-              <Text style={styles.totalValue}>
-                {q.taxAmount.toLocaleString("en-AE", {
-                  minimumFractionDigits: 2,
-                })}
-              </Text>
-            </View>
-
-            {/* Discount row — only if discount > 0 */}
-            {q.discount > 0 && (
+          {/* TOTALS */}
+          <View style={styles.totalsWrapper}>
+            <View style={styles.totalsBox}>
               <View style={styles.totalRow}>
-                <Text style={styles.totalSpacer} />
-                <Text style={styles.totalLabel}>DISCOUNT</Text>
+                <Text style={styles.totalLabel}>Subtotal</Text>
                 <Text style={styles.totalValue}>
-                  -
-                  {q.discount.toLocaleString("en-AE", {
-                    minimumFractionDigits: 2,
-                  })}
+                  AED {q.subTotal.toFixed(2)}
                 </Text>
               </View>
-            )}
 
-            {/* GRAND TOTAL row */}
-            <View style={styles.grandTotalRow}>
-              <Text style={{ width: "83%", color: WHITE, fontSize: 9 }} />
-              <Text style={styles.grandTotalLabel}>GRAND TOTAL</Text>
-              <Text style={styles.grandTotalValue}>
-                AED{" "}
-                {q.totalAmount.toLocaleString("en-AE", {
-                  minimumFractionDigits: 2,
-                })}
-              </Text>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>VAT {q.vatPercent}%</Text>
+                <Text style={styles.totalValue}>
+                  AED {q.taxAmount.toFixed(2)}
+                </Text>
+              </View>
+
+              {q.discount > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Discount</Text>
+                  <Text style={styles.totalValue}>
+                    AED {q.discount.toFixed(2)}
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.grandRow}>
+                <Text style={styles.grandLabel}>Grand Total</Text>
+                <Text style={styles.grandValue}>
+                  AED {q.totalAmount.toFixed(2)}
+                </Text>
+              </View>
             </View>
           </View>
 
-          {/* Amount in words */}
           <Text style={styles.amountWords}>
             Amount in words: {numberToWords(q.totalAmount)}
           </Text>
+        </View>
 
-          {/* ── Hosting note (optional) ── */}
-          {q.hostingNote || co.quotationHostingNote ? (
-            <View>
-              <Text style={styles.sectionHeading}>Data Hosting (Cloud)</Text>
+        {/* FOOTER */}
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>{co.name}</Text>
+
+          <Text style={styles.footerText}>
+            {co.contactEmail} | {co.contactPhone}
+          </Text>
+        </View>
+      </Page>
+
+      {/* PAGE 2 */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.body}>
+          {/* HOSTING */}
+          {(q.hostingNote || co.quotationHostingNote) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Data Hosting (Cloud)</Text>
+
               <Text style={styles.noteText}>
                 {q.hostingNote || co.quotationHostingNote}
               </Text>
             </View>
-          ) : null}
+          )}
 
-          {/* ── System requirements (optional) ── */}
-          {q.systemRequirements || co.quotationSystemRequirements ? (
-            <View>
-              <Text style={styles.sectionHeading}>System Requirements</Text>
+          {/* SYSTEM REQUIREMENTS */}
+          {(q.systemRequirements ||
+            co.quotationSystemRequirements) && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>System Requirements</Text>
+
               <Text style={styles.noteText}>
-                {q.systemRequirements || co.quotationSystemRequirements}
+                {q.systemRequirements ||
+                  co.quotationSystemRequirements}
               </Text>
             </View>
-          ) : null}
+          )}
 
-          {/* ── Terms & Conditions ── */}
+          {/* TERMS */}
           {termLines.length > 0 && (
-            <View>
-              <Text style={styles.sectionHeading}>Terms and Conditions</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Terms and Conditions
+              </Text>
+
               {termLines.map((line: string, i: number) => (
-                <View key={i} style={styles.termItem} wrap={false}>
-                  <Text style={styles.termNumber}>{i + 1}.</Text>
+                <View key={i} style={styles.termRow}>
+                  <Text style={styles.termIndex}>{i + 1}.</Text>
+
                   <Text style={styles.termText}>
                     {line.replace(/^\d+[\.\)]\s*/, "")}
                   </Text>
@@ -641,74 +723,78 @@ function QuotationPDF({ q }: { q: any }) {
             </View>
           )}
 
-          {/* ── Bank Details ── */}
+          {/* BANK DETAILS */}
           {co.bankName && (
-            <View>
-              <Text style={styles.sectionHeading}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
                 Bank Details for Payment Remittance
               </Text>
+
               {[
                 ["ACCOUNT NAME", co.accountName],
                 ["BANK NAME", co.bankName],
                 ["BRANCH NAME", co.bankBranch],
                 ["ACCOUNT NO", co.accountNo],
-                ["IBAN NO", co.iban],
+                ["IBAN", co.iban],
                 ["SWIFT CODE", co.swiftCode],
               ]
-                .filter(([, v]) => v)
+                .filter(([, value]) => value)
                 .map(([label, value]) => (
                   <View key={label} style={styles.bankRow}>
-                    <Text style={styles.bankLabel}>{label}:</Text>
+                    <Text style={styles.bankLabel}>{label}</Text>
                     <Text style={styles.bankValue}>{value}</Text>
                   </View>
                 ))}
             </View>
           )}
 
-          {/* Validity / footer note */}
-          <Text style={[styles.noteText, { marginTop: 16 }]}>
-            {validityNote}
-          </Text>
+          {/* VALIDITY */}
+          <View style={styles.section}>
+            <Text style={styles.noteText}>
+              {co.quotationFooter ||
+                `The validity of this proposal is for ${q.validDays || 15} days only.`}
+            </Text>
+          </View>
 
-          {/* ── Signature ── */}
-          <View style={styles.signatureSection} wrap={false}>
-            <Text style={styles.bodyPara}>Thanks, and regards,</Text>
+          {/* SIGNATURE */}
+          <View style={styles.signatureSection}>
+            <Text style={styles.paragraph}>Thanks and regards,</Text>
 
-            {/* Signature image if uploaded */}
-            {co.signature ? (
-              <Image style={styles.signatureImage} src={co.signature} />
-            ) : (
-              <View style={{ height: 30 }} />
+            {signature && (
+              <Image src={signature} style={styles.signatureImage} />
             )}
 
-            <Text style={styles.signerName}>{signatoryName}</Text>
-            {signatoryTitle ? (
-              <Text style={styles.signerDetail}>{signatoryTitle}</Text>
-            ) : null}
-            {signatoryEmail ? (
-              <Text style={styles.signerDetail}>{signatoryEmail}</Text>
-            ) : null}
-            {signatoryPhone ? (
-              <Text style={styles.signerDetail}>{signatoryPhone}</Text>
-            ) : null}
+            <Text style={styles.signName}>
+              {co.signatoryName || q.createdBy?.name || co.name}
+            </Text>
+
+            {co.signatoryTitle && (
+              <Text style={styles.signDetail}>
+                {co.signatoryTitle}
+              </Text>
+            )}
+
+            {co.signatoryEmail && (
+              <Text style={styles.signDetail}>
+                {co.signatoryEmail}
+              </Text>
+            )}
+
+            {co.signatoryPhone && (
+              <Text style={styles.signDetail}>
+                {co.signatoryPhone}
+              </Text>
+            )}
           </View>
         </View>
 
-        {/* ════════════════════════════════════
-            FOOTER — fixed at bottom every page
-            ════════════════════════════════════ */}
+        {/* FOOTER */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerLeft}>{co.name}</Text>
-          <View style={styles.footerRight}>
-            {co.contactPhone && (
-              <Text style={styles.footerItem}>{co.contactPhone}</Text>
-            )}
-            {co.contactEmail && (
-              <Text style={styles.footerItem}>{co.contactEmail}</Text>
-            )}
-            {co.website && <Text style={styles.footerItem}>{co.website}</Text>}
-            {co.address && <Text style={styles.footerItem}>{co.address}</Text>}
-          </View>
+          <Text style={styles.footerText}>{co.name}</Text>
+
+          <Text style={styles.footerText}>
+            {co.contactEmail} | {co.contactPhone}
+          </Text>
         </View>
       </Page>
     </Document>
@@ -726,15 +812,29 @@ export async function GET(
     const { quotationId } = await params;
 
     const { userId } = await auth();
-    if (!userId)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
 
     const dbUser = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { companyId: true },
+      where: {
+        clerkId: userId,
+      },
+      select: {
+        companyId: true,
+      },
     });
-    if (!dbUser)
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 },
+      );
+    }
 
     const quotation = await prisma.quotation.findFirst({
       where: {
@@ -742,10 +842,12 @@ export async function GET(
         companyId: dbUser.companyId,
       },
       include: {
-        // ✅ All items ordered by creation
-        items: { orderBy: { id: "asc" } },
+        items: {
+          orderBy: {
+            id: "asc",
+          },
+        },
 
-        // ✅ Lead fields needed for TO section
         lead: {
           select: {
             name: true,
@@ -756,23 +858,40 @@ export async function GET(
           },
         },
 
-        // ✅ Full company — logo, bank, signature, terms, signatory
         company: true,
 
-        // ✅ Who created it
         createdBy: {
-          select: { name: true, email: true },
+          select: {
+            name: true,
+            email: true,
+          },
         },
       },
     });
 
-    if (!quotation)
+    if (!quotation) {
       return NextResponse.json(
         { error: "Quotation not found" },
         { status: 404 },
       );
+    }
 
-    const pdfBuffer = await pdf(<QuotationPDF q={quotation} />).toBuffer();
+    // CONVERT IMAGES TO BASE64
+    const logoBase64 = quotation.company.logo
+      ? await imageToBase64(quotation.company.logo)
+      : null;
+
+    const signatureBase64 = quotation.company.signature
+      ? await imageToBase64(quotation.company.signature)
+      : null;
+
+    const pdfBuffer = await pdf(
+      <QuotationPDF
+        q={quotation}
+        logo={logoBase64}
+        signature={signatureBase64}
+      />,
+    ).toBuffer();
 
     return new NextResponse(pdfBuffer as any, {
       headers: {
@@ -782,10 +901,16 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("PDF_GENERATION_ERROR:", error);
+    console.error("PDF_GENERATION_ERROR", error);
+
     return NextResponse.json(
-      { error: "Failed to generate PDF" },
-      { status: 500 },
+      {
+        error: "Failed to generate PDF",
+      },
+      {
+        status: 500,
+      },
     );
   }
 }
+
