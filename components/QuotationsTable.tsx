@@ -62,7 +62,6 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-scroll shadow-sm">
         <table className="w-full ">
-
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               {[
@@ -147,14 +146,58 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() =>
-                        window.open(`/api/quotations/${q.id}/pdf`, "_blank")
-                      }
-                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 transition-all"
-                    >
-                      <Download className="h-3 w-3" /> PDF
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {/* VIEW BUTTON */}
+                      <button
+                        onClick={() =>
+                          window.open(
+                            `/api/quotations/${q.id}/pdf?view=1`,
+                            "_blank",
+                          )
+                        }
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 transition-all"
+                      >
+                        <FileText className="h-3 w-3" />
+                        View
+                      </button>
+
+                      {/* DOWNLOAD BUTTON */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(
+                              `/api/quotations/${q.id}/pdf`,
+                            );
+
+                            if (!response.ok) {
+                              throw new Error("Failed to download PDF");
+                            }
+
+                            const blob = await response.blob();
+
+                            const url = window.URL.createObjectURL(blob);
+
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${q.qId}.pdf`;
+
+                            document.body.appendChild(a);
+                            a.click();
+
+                            a.remove();
+
+                            window.URL.revokeObjectURL(url);
+                          } catch (error) {
+                            console.error(error);
+                            alert("Failed to download PDF");
+                          }
+                        }}
+                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
+                      >
+                        <Download className="h-3 w-3" />
+                        Download
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
