@@ -9,7 +9,7 @@ import { LeadDetailsDrawer } from "./LeadDetailsDrawer";
 
 type Lead = {
   id: string;
-  clientCompany?: string;
+  clientCompany?: string | null;
   name?: string;
 };
 
@@ -18,11 +18,11 @@ type Quotation = {
   qId: string;
   version?: number;
   lead?: Lead;
-  subject?: string;
+  subject?: string | null;
   totalAmount?: number;
   status?: string;
-  createdBy?: { name?: string };
-  createdAt: string;
+  createdBy?: { name?: string | null };
+  createdAt: string | Date;
 };
 
 const STATUS_STYLES: Record<string, string> = {

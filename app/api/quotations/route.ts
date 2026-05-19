@@ -2,6 +2,10 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getAllSubordinateIds,
+  getQuotationAccessWhere,
+} from "@/lib/visibility";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -15,12 +19,15 @@ export async function GET(req: NextRequest) {
 
   if (!dbUser) return NextResponse.json([], { status: 401 });
 
+  const subordinateIds = await getAllSubordinateIds(dbUser.id);
+
   const status = req.nextUrl.searchParams.get("status");
   const search = req.nextUrl.searchParams.get("search");
 
   const quotations = await prisma.quotation.findMany({
     where: {
       companyId: dbUser.companyId,
+      ...getQuotationAccessWhere(dbUser, subordinateIds),
       ...(status ? { status } : {}),
       ...(search
         ? {

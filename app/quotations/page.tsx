@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { QuotationsTable } from "@/components/QuotationsTable";
+import {
+  getAllSubordinateIds,
+  getQuotationAccessWhere,
+} from "@/lib/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +21,13 @@ export default async function QuotationsPage() {
 
   if (!dbUser) redirect("/sign-in");
 
+  const subordinateIds = await getAllSubordinateIds(dbUser.id);
+
   const quotations = await prisma.quotation.findMany({
-    where: { companyId: dbUser.companyId },
+    where: {
+      companyId: dbUser.companyId,
+      ...getQuotationAccessWhere(dbUser, subordinateIds),
+    },
     include: {
       lead: {
         select: { id: true, clientCompany: true, name: true },
