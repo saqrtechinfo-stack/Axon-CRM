@@ -132,6 +132,10 @@
   display: none;
 }
 
+button{
+  cursor: pointer;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

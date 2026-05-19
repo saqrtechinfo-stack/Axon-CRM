@@ -3,8 +3,27 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import { FileText, Download, Search } from "lucide-react";
+import { FileText, Download, Search, SidebarOpenIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { LeadDetailsDrawer } from "./LeadDetailsDrawer";
+
+type Lead = {
+  id: string;
+  clientCompany?: string;
+  name?: string;
+};
+
+type Quotation = {
+  id: string;
+  qId: string;
+  version?: number;
+  lead?: Lead;
+  subject?: string;
+  totalAmount?: number;
+  status?: string;
+  createdBy?: { name?: string };
+  createdAt: string;
+};
 
 const STATUS_STYLES: Record<string, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
@@ -13,9 +32,10 @@ const STATUS_STYLES: Record<string, string> = {
   REJECTED: "bg-red-100 text-red-600",
 };
 
-export function QuotationsTable({ quotations }: { quotations: any[] }) {
+export function QuotationsTable({ quotations }: { quotations: Quotation[] }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const filtered = quotations.filter((q) => {
     const matchesSearch =
@@ -42,7 +62,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center items-center md:flex-nowrap gap-2">
           {["ALL", "DRAFT", "SENT", "ACCEPTED", "REJECTED"].map((s) => (
             <button
               key={s}
@@ -76,7 +96,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
               ].map((h) => (
                 <th
                   key={h}
-                  className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wider text-slate-500"
+                  className="px-4 whitespace-nowrap py-3 text-left text-[10px] font-black uppercase tracking-wider text-slate-500"
                 >
                   {h}
                 </th>
@@ -95,21 +115,24 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
               </tr>
             ) : (
               filtered.map((q) => (
-                <tr key={q.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={q.id}
+                  className=" hover:bg-slate-50 transition-colors"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <FileText className="h-3.5 w-3.5 text-blue-500" />
                       <span className="text-xs font-black text-slate-700">
                         {q.qId}
                       </span>
-                      {q.version > 1 && (
+                      {q.version && q.version > 1 && (
                         <span className="text-[9px] text-slate-400 font-bold">
                           v{q.version}
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <p className="text-xs font-bold text-slate-700">
                       {q.lead?.clientCompany || "—"}
                     </p>
@@ -120,7 +143,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                       {q.subject || "—"}
                     </p>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className="text-xs font-black text-slate-700">
                       AED{" "}
                       {q.totalAmount?.toLocaleString("en-AE", {
@@ -130,7 +153,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[q.status] || STATUS_STYLES.DRAFT}`}
+                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${STATUS_STYLES[q.status ?? ""] || STATUS_STYLES.DRAFT}`}
                     >
                       {q.status}
                     </span>
@@ -146,7 +169,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center gap-2">
                       {/* VIEW BUTTON */}
                       <button
                         onClick={() =>
@@ -155,11 +178,21 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                             "_blank",
                           )
                         }
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 transition-all"
+                        className="flex cursor-pointer w-full items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-blue-100 hover:text-blue-600 transition-all"
                       >
                         <FileText className="h-3 w-3" />
                         View
                       </button>
+
+                      {q.lead?.id && (
+                        <button
+                          onClick={() => q.lead && setSelectedLead(q.lead)}
+                          className="w-full cursor-pointer  whitespace-nowrap flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-all"
+                        >
+                          <SidebarOpenIcon className="h-3 w-3"></SidebarOpenIcon>
+                          Open Lead
+                        </button>
+                      )}
 
                       {/* DOWNLOAD BUTTON */}
                       <button
@@ -192,7 +225,7 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
                             alert("Failed to download PDF");
                           }
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
+                        className="flex cursor-pointer items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-600 transition-all"
                       >
                         <Download className="h-3 w-3" />
                         Download
@@ -205,6 +238,22 @@ export function QuotationsTable({ quotations }: { quotations: any[] }) {
           </tbody>
         </table>
       </div>
+
+      {selectedLead && (
+        <LeadDetailsDrawer
+          key={selectedLead.id}
+          lead={selectedLead}
+          isOpen={!!selectedLead}
+          onClose={() => setSelectedLead(null)}
+          onUpdate={() => {}}
+          statusColumns={[]}
+          availableStaff={[]}
+          categories={[]}
+          products={[]}
+          currentUserRole=""
+          onLeadSwitch={(lead) => setSelectedLead(lead)}
+        />
+      )}
     </div>
   );
 }
