@@ -3,10 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getAllSubordinateIds,
-  getLeadAccessWhere,
-} from "@/lib/visibility";
+import { getAllSubordinateIds, getLeadAccessWhere } from "@/lib/visibility";
 
 export async function GET(
   req: NextRequest,
